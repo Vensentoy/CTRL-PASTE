@@ -1,7 +1,10 @@
 # LLCC OJT System — Project State
 
 **Last updated:** 2026-09-16
-**Session summary:** Phases 1–3 of `OPENCODE_HANDOFF_PLAN.md` delivered
+**Session summary:** Phases 0–4 of `OPENCODE_HANDOFF_PLAN.md` delivered plus
+Breeze 22 fix and final judgment-call resolutions. All `workflows.md`
+workflows confirmed, suite fully green (85 passed), two remaining
+judgment calls formally accepted.
 against the live codebase. Phase 1: QR-code login shortcut (encodes
 `request()->root()` so it survives LAN IP changes — never a hardcoded
 URL). Phase 2: the full click-test pass was executed as **HTTP feature
@@ -168,12 +171,25 @@ covered rather than duplicated.
    `username` login, and create users without `User::factory()`.
    `ConfirmablePasswordController` and `ProfileUpdateRequest` were
    corrected alongside the tests. Full suite is now green.
-2. **MAR PDF rendering** (carried judgment call): `activities_text` is
-    still a single blob rendered as one text block, not the official
-    form's per-date table — `data-model.md` gives MAR no per-date rows.
-    Resolution belongs to LLCC or a new `open-items.md` rule.
-3. **Same-day-cutover convention for company switches** (carried):
-    whether a switch with `start_date` = old `end_date` is acceptable.
-    Still an unconfirmed judgment call.
+2. **MAR PDF rendering — resolved 2026-09-16 as accepted simplification:**
+   `activities_text` remains a single blob (see `resources/views/pdf/mar.blade.php:3`).
+   `pdf-forms.md:111` describes a two-column Date | Activities table
+   labeled "Summary of Weekly Accomplishment Reports (Week 1–4)", but
+   `data-model.md:108` gives MAR only one free-text field per month with
+   no per-date rows. Per `downstream-contract.md` (never invent entities
+   not in data-model), the PDF keeps the single-block rendering with the
+   correct heading and `monthly_total_hours` — no DAR-derived per-date
+   breakdown is synthesized. Flagged in-code as intentional; re-open
+   only if LLCC provides a new per-date MAR spec.
+3. **Same-day-cutover for company switches — resolved 2026-09-16 as accepted:**
+   `app/Http/Controllers/Student/CompanyAssignmentController.php:73`
+   closes the old row with `end_date = new start_date` (no gap day) and
+   `app/Http/Requests/StoreCompanyAssignmentRequest.php:50` validates
+   `start_date >= active.start_date`. Covered by
+   `tests/Feature/Workflows/CompanySwitchTest.php:62` (same-day) and
+   `:85` (predated rejected). Per `business-rules.md:BR-12` historized
+   history is preserved; `workflows.md` and `data-model.md` specify no
+   gap convention, so same-day is kept unless LLCC requests a gap day.
 4. Warm dev DB untouched — no reseed needed. Full-suite command is
-    `php artisan test` (85 passed, 0 failed).
+     `php artisan test` (85 passed, 0 failed). No further phases pending
+     unless LLCC changes the two accepted simplifications above.
