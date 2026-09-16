@@ -153,4 +153,24 @@ class QrGateTest extends WorkflowTestCase
         ])->assertStatus(403);
         $this->assertGuest();
     }
+
+    public function test_generated_qr_signature_validates_on_lan_host(): void
+    {
+        // Regression for fresh-QR instant 410: signature was computed for
+        // localhost but QR URL carried the LAN host, so hasValidSignature()
+        // failed on the phone. Generate must sign FOR the final host.
+        config(['qr.bypass_in_testing' => true]);
+        config(['qr.host' => 'http://192.168.1.17:8000']);
+        $coordinator = $this->makeCoordinator('coord.lan', 'Lan Coord');
+
+        $response = $this->actingAs($coordinator->user)
+            ->post(route('coordinator.qr.generate'))
+            ->assertOk();
+
+        $signedUrl = $response->json('signed_url');
+        $this->assertStringContainsString('192.168.1.17:8000/qr/enter', $signedUrl);
+
+        // Hitting the LAN-host signed URL must redirect to login, not 410.
+        $this->get($signedUrl)->assertRedirect(route('login'));
+    }
 }

@@ -32,6 +32,9 @@ class QrTokenController extends Controller
 
         // Use LAN host, not APP_URL/127.0.0.1, so phone can reach it even if coordinator
         // opened dashboard via localhost. Falls back to configured QR_HOST or detected LAN IP.
+        // IMPORTANT: signature must be computed FOR the final host — hasValidSignature()
+        // recomputes over the phone's absolute URL, so prepending host onto a
+        // path-signed route (absolute=false) always mismatches. Force root first.
         $host = $request->getSchemeAndHttpHost();
         if (config('qr.host')) {
             $host = rtrim(config('qr.host'), '/');
@@ -47,8 +50,9 @@ class QrTokenController extends Controller
                 }
             }
         }
-        $signedPath = URL::temporarySignedRoute('qr.enter', $expiresAt, ['token' => $plain], false);
-        $signedUrl = rtrim($host, '/') . $signedPath;
+        URL::forceRootUrl($host);
+        $signedUrl = URL::temporarySignedRoute('qr.enter', $expiresAt, ['token' => $plain]);
+        URL::forceRootUrl(config('app.url'));
 
         $qrDataUrl = 'data:image/svg+xml;base64,' . base64_encode(
             QrCode::size(300)->generate($signedUrl)
