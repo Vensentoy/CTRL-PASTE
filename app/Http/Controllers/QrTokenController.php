@@ -30,9 +30,25 @@ class QrTokenController extends Controller
             'created_by' => $request->user()?->id,
         ]);
 
-        // Use coordinator's current host (LAN IP) not APP_URL localhost, so phone can reach it.
+        // Use LAN host, not APP_URL/127.0.0.1, so phone can reach it even if coordinator
+        // opened dashboard via localhost. Falls back to configured QR_HOST or detected LAN IP.
+        $host = $request->getSchemeAndHttpHost();
+        if (config('qr.host')) {
+            $host = rtrim(config('qr.host'), '/');
+        } elseif (in_array($request->getHost(), ['127.0.0.1', 'localhost', '::1'])) {
+            // Try configured APP_URL host if it's a LAN IP, else detect via gethostbyname.
+            $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+            if ($appHost && ! in_array($appHost, ['127.0.0.1', 'localhost', '::1'])) {
+                $host = $request->getScheme() . '://' . $appHost . ($request->getPort() && ! in_array($request->getPort(), [80, 443]) ? ':' . $request->getPort() : '');
+            } else {
+                $lanIp = gethostbyname(gethostname());
+                if ($lanIp && $lanIp !== gethostname() && filter_var($lanIp, FILTER_VALIDATE_IP)) {
+                    $host = $request->getScheme() . '://' . $lanIp . ($request->getPort() && ! in_array($request->getPort(), [80, 443]) ? ':' . $request->getPort() : '');
+                }
+            }
+        }
         $signedPath = URL::temporarySignedRoute('qr.enter', $expiresAt, ['token' => $plain], false);
-        $signedUrl = rtrim($request->getSchemeAndHttpHost(), '/') . $signedPath;
+        $signedUrl = rtrim($host, '/') . $signedPath;
 
         $qrDataUrl = 'data:image/svg+xml;base64,' . base64_encode(
             QrCode::size(300)->generate($signedUrl)
