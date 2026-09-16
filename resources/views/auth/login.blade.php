@@ -6,6 +6,16 @@
     the fixed LoginRequest.php.
 --}}
 <x-guest-layout>
+    {{-- Phase 1: QR shortcut. Encodes request()->root() (the current
+        request's root URL — never APP_URL) so it stays valid when the
+        LAN IP changes. Not an auth mechanism: it only opens this page. --}}
+    <div class="flex flex-col items-center mb-6">
+        <div class="bg-white p-3 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            {!! QrCode::size(140)->generate(request()->root()); !!}
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Scan to open this page.') }}</p>
+    </div>
+
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
