@@ -10,10 +10,12 @@ class EnsureQrAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Local bypass and testing bypass (default) so dev and existing suite
-        // don't lock themselves out. QrGateTest opts into enforcement via
-        // config(['qr.bypass_in_testing' => false]).
-        if (app()->environment('local') || env('QR_GATE_BYPASS', false)) {
+        // Bypass for dev/testing so suite doesn't lock out, but allow real
+        // gate test on LAN by setting APP_ENV=production or QR_GATE_ENFORCE=true.
+        // Local still bypasses unless QR_GATE_ENFORCE is set to force gate even in local.
+        if (env('QR_GATE_ENFORCE', false)) {
+            // Force gate even in local/testing when user wants to demo expiry.
+        } elseif (app()->environment('local') || env('QR_GATE_BYPASS', false)) {
             return $next($request);
         }
         if (app()->environment('testing') && config('qr.bypass_in_testing', true)) {

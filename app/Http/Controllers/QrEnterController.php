@@ -15,12 +15,12 @@ class QrEnterController extends Controller
         // to be coordinator-only; entry itself is guest-accessible.
 
         if (! URL::hasValidSignature($request)) {
-            return redirect()->route('login')->withErrors(['qr' => 'Invalid or tampered QR link.']);
+            return response()->view('auth.qr-expired', ['reason' => 'QR signature invalid or expired (2-min window). Ask coordinator to Generate again.'], 410);
         }
 
         $plain = $request->query('token');
         if (! $plain) {
-            return redirect()->route('login')->withErrors(['qr' => 'Missing QR token.']);
+            return response()->view('auth.qr-expired', ['reason' => 'Missing QR token. Ask coordinator to Generate again.'], 410);
         }
 
         $hash = hash('sha256', $plain);

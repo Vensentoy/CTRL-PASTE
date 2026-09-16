@@ -86,7 +86,7 @@ class QrGateTest extends WorkflowTestCase
         // Tamper token param -> signature invalid
         $tampered = $signed . 'x';
 
-        $this->get($tampered)->assertRedirect(route('login'))->assertSessionHasErrors('qr');
+        $this->get($tampered)->assertStatus(410)->assertSee('expired');
     }
 
     public function test_login_succeeds_after_qr_session(): void
