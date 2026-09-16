@@ -30,7 +30,9 @@ class QrTokenController extends Controller
             'created_by' => $request->user()?->id,
         ]);
 
-        $signedUrl = URL::temporarySignedRoute('qr.enter', $expiresAt, ['token' => $plain]);
+        // Use coordinator's current host (LAN IP) not APP_URL localhost, so phone can reach it.
+        $signedPath = URL::temporarySignedRoute('qr.enter', $expiresAt, ['token' => $plain], false);
+        $signedUrl = rtrim($request->getSchemeAndHttpHost(), '/') . $signedPath;
 
         $qrDataUrl = 'data:image/svg+xml;base64,' . base64_encode(
             QrCode::size(300)->generate($signedUrl)

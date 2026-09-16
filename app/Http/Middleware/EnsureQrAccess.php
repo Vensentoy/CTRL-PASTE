@@ -20,6 +20,18 @@ class EnsureQrAccess
             return $next($request);
         }
 
+        // Coordinators can log in directly to Generate the QR — otherwise no one
+        // could bootstrap the gate. Check username before auth (role not known yet).
+        if ($request->isMethod('post') && ($request->routeIs('login') || $request->is('login'))) {
+            $username = $request->input('username');
+            if ($username) {
+                $isCoordinator = \App\Models\User::where('username', $username)->where('role', 'coordinator')->exists();
+                if ($isCoordinator) {
+                    return $next($request);
+                }
+            }
+        }
+
         // Explicit gate bypass for QR entry itself is handled by not applying
         // this middleware to qr.enter route.
         if ($request->session()->has('qr_verified_at')) {

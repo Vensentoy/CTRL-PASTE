@@ -133,4 +133,24 @@ class QrGateTest extends WorkflowTestCase
             ->post(route('coordinator.qr.generate'))
             ->assertStatus(403);
     }
+
+    public function test_coordinator_can_login_directly_without_qr_to_generate(): void
+    {
+        $coordinator = $this->makeCoordinator('coord.direct', 'Direct Coord');
+        // No QR session — coordinator login should still pass via bypass.
+        $this->post('/login', [
+            'username' => $coordinator->user->username,
+            'password' => 'password',
+        ])->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticatedAs($coordinator->user);
+
+        // Student direct login without QR must still be blocked.
+        $student = $this->makeStudent($coordinator, 'student.blocked2');
+        $this->post('/logout');
+        $this->post('/login', [
+            'username' => $student->user->username,
+            'password' => 'password',
+        ])->assertStatus(403);
+        $this->assertGuest();
+    }
 }
