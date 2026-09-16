@@ -13,6 +13,22 @@
             </div>
         @endif
 
+        {{-- QR gate: coordinator-only Generate button (decided: 2-min single-use, friendly block, local bypass). --}}
+        <div class="border rounded-md p-4">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-sm font-medium">QR Access Gate</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Generate a 2-minute single-use QR — students must scan it to reach the login form.</p>
+                </div>
+                <button type="button" id="qr-generate-btn" class="px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700">Generate QR</button>
+            </div>
+            <div id="qr-display" class="hidden mt-4 flex flex-col items-center">
+                <div id="qr-image" class="bg-white p-3 rounded-lg shadow border"></div>
+                <p id="qr-countdown" class="mt-2 text-xs text-gray-600"></p>
+                <p class="text-xs text-gray-400">Single-use — expires in 2 minutes.</p>
+            </div>
+        </div>
+
         {{-- Cohort-wide summary row (this session). Students/Open Cycles
              kept from before; the three "Awaiting Review" tiles now split
              DAR/WAR/MAR instead of one combined DAR-only number, plus a
@@ -243,6 +259,46 @@
         ])->sortByDesc(fn ($s) => $s['dar'] + $s['war'] + $s['mar'])->take(8)->values();
     @endphp
 
+    <script>
+        // QR gate: fetch single-use token and render QR.
+        (function () {
+            var btn = document.getElementById('qr-generate-btn');
+            var display = document.getElementById('qr-display');
+            var imgWrap = document.getElementById('qr-image');
+            var countdown = document.getElementById('qr-countdown');
+            var timer = null;
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                btn.disabled = true;
+                btn.textContent = 'Generating…';
+                fetch("{{ route('coordinator.qr.generate') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]')?.content || '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    imgWrap.innerHTML = '<img src="' + data.qr_data_url + '" alt="QR code" class="w-[300px] h-[300px]"/>';
+                    display.classList.remove('hidden');
+                    var expiresAt = new Date(data.expires_at).getTime();
+                    if (timer) clearInterval(timer);
+                    function tick() {
+                        var secs = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+                        countdown.textContent = secs > 0 ? 'Expires in ' + secs + 's' : 'Expired — Generate again.';
+                        if (secs <= 0) { clearInterval(timer); }
+                    }
+                    tick();
+                    timer = setInterval(tick, 1000);
+                    btn.textContent = 'Regenerate QR';
+                    btn.disabled = false;
+                }).catch(function () {
+                    btn.textContent = 'Generate QR';
+                    btn.disabled = false;
+                });
+            });
+        })();
+    </script>
     <script src="{{ asset('vendor/chartjs/chart.umd.js') }}"></script>
     <script>
         // Cohort completion doughnut — two-value split, colors chosen for

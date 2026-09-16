@@ -21,6 +21,8 @@ use App\Http\Controllers\Student\InformationSheetController;
 use App\Http\Controllers\Student\MarController;
 use App\Http\Controllers\Student\WarController;
 use App\Http\Controllers\WarPdfController;
+use App\Http\Controllers\QrEnterController;
+use App\Http\Controllers\QrTokenController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,6 +48,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/qr/enter', [QrEnterController::class, 'enter'])->name('qr.enter');
 
 Route::middleware(['auth', 'role:coordinator'])->get('/test-role-gate', function () {
     return 'gate passed';
@@ -109,6 +113,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Coordinator-only routes
     Route::middleware('role:coordinator')->prefix('coordinator')->name('coordinator.')->group(function () {
+        Route::post('/qr/generate', [QrTokenController::class, 'generate'])->name('qr.generate');
         Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
 
         // Coordinator student roster + reassignment (BR-1, BR-11).

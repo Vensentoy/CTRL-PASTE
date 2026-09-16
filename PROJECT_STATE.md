@@ -2,9 +2,11 @@
 
 **Last updated:** 2026-09-16
 **Session summary:** Phases 0–4 of `OPENCODE_HANDOFF_PLAN.md` delivered plus
-Breeze 22 fix and final judgment-call resolutions. All `workflows.md`
-workflows confirmed, suite fully green (85 passed), two remaining
-judgment calls formally accepted.
+Breeze 22 fix, judgment-call resolutions, and QR-gated access (user
+request: "only by scanning the qr can they access to the website").
+Coordinator-only Generate QR button (2-min single-use signed token)
+gates `GET/POST /login` via `EnsureQrAccess` middleware; login form no
+longer shows always-on QR. Suite fully green (93 passed).
 against the live codebase. Phase 1: QR-code login shortcut (encodes
 `request()->root()` so it survives LAN IP changes — never a hardcoded
 URL). Phase 2: the full click-test pass was executed as **HTTP feature
@@ -43,17 +45,20 @@ MAR PDFs), simplesoftwareio/simple-qrcode (login-page QR). The DB is
 
 ## Truth about the test suite (read first)
 
-- `php artisan test tests/Feature/Workflows` → **60 passed, 0 failed**
-  (235 assertions). This is the workflow click-test suite.
-- `php artisan test` (full suite) → **85 passed, 0 failed**
-  (286 assertions) — **fully green since 2026-09-16**. The former 22
-  Breeze reds under `tests/Feature/Auth/*` were fixed this session:
-  `User::factory()` replaced with direct `User::create()` + `Hash::make`
-  (no factory exists — users are seeded), `email` → `username` login,
-  `/register` and `/forgot-password` now correctly assert 404 per
+- `php artisan test tests/Feature/Workflows` → **68 passed, 0 failed**
+  (Workflows 60 + QrGate 8). This is the workflow click-test suite.
+- `php artisan test` (full suite) → **93 passed, 0 failed**
+  (316 assertions) — **fully green since 2026-09-16**. The former 22
+  Breeze reds under `tests/Feature/Auth/*` were fixed: `User::factory()`
+  → `User::create()` + `Hash::make` (no factory exists — users are
+  seeded), `email` → `username` login, `/register` and
+  `/forgot-password` now correctly assert 404 per
   `roles-and-permissions.md`, `ConfirmablePasswordController` fixed
   from `email` to `username`, and `ProfileUpdateRequest` aligned to
   `username` (Breeze's `name`/`email` don't exist on users table).
+  QR gate at `tests/Feature/Workflows/QrGateTest.php:13` enforces
+  coordinator-only generation, 2-min single-use, friendly block, local
+  bypass (`APP_ENV=testing` bypass via `config/qr.php:7`).
 
 ## Codebase inventory
 
@@ -66,8 +71,8 @@ MAR PDFs), simplesoftwareio/simple-qrcode (login-page QR). The DB is
 | Company switch UI (BR-12) | Student self-service company change | Now **confirmed live via feature tests**: first assignment active, switch closes old (`end_date` = new start) and inserts new, no overlapping starts, coordinator sees history. |
 | `app/Services/CompletedHoursRecalculator.php` | BR-10 hours accumulation + auto-Completed | Sums Approved DAR + WAR week + MAR hours; flips `ojt_status` to Completed at `required_hours`. **Confirmed live via feature tests.** |
 | `app/Services/AuditLogger.php`, `app/Models/AuditLog.php`, `Coordinator\AuditLogController.php`, `dashboard` audit-log view | Audit trail (data-model.md's `audit_logs`) | **Wired and confirmed live this pass.** Called from: Login, DAR/WAR/MAR submit, DAR/WAR/MAR review (approve + return), company assignment, reassign, reopen, archive, reset-password. `action_type` enum = the fixed six (Login/Submit/Approve/Return/Update/AccountChange). Viewer route `coordinator.audit-log.index` gated to coordinators, with `action_type` filter. |
-| QR login shortcut | Onboarding convenience (not an auth mechanism) | Phase 1 — QR on the login page encodes `request()->root()` dynamically, caption "Scan to open this page." |
-| `tests/Feature/Workflows/` (8 test classes + abstract `WorkflowTestCase`) | HTTP click-test suite | Phase 2 — 60 tests, green. sqlite `:memory:` + `RefreshDatabase`; helpers build unique seeded-like students (unique `S...` student_id_number) and cycles on the fly. |
+| QR login shortcut → QR-gated access | Gate: coordinator-only Generate QR → 2-min single-use signed token at `GET /qr/enter` sets session flag checked by `EnsureQrAccess` before `GET/POST /login` | Phase 1 was `request()->root()` always-on; **replaced 2026-09-16** with gated flow: `config/qr.php:4` TTL, `app/Models/QrAccessToken.php:7`, `QrTokenController.php:13`/`QrEnterController.php:12`, `EnsureQrAccess.php:7`, `routes/web.php:48` + `routes/auth.php:11` `qr.gate` alias, login `auth/login.blade.php:8` no longer always-on, `auth/qr-required.blade.php:1` friendly block, `auth/qr-expired.blade.php:1` gone, `coordinator/dashboard.blade.php:22` Generate button. Local/testing bypass via `config/qr.php:7`. |
+| `tests/Feature/Workflows/` (9 test classes + abstract `WorkflowTestCase`) | HTTP click-test suite | Phase 2 — 60 tests, green. sqlite `:memory:` + `RefreshDatabase`; helpers build unique seeded-like students (unique `S...` student_id_number) and cycles on the fly. Plus `QrGateTest.php:13` — 8 tests for gate. |
 | Stray root SQLite + `.bak.*` files | Phase 0 cleanup | Confirmed deleted (Phase 0 commit); verified still gone this pass. |
 | `routes/web.php` | All routes | Live, uncommented, all covered by the test suite. Login is username-based (`/login`), `/register` and `/forgot-password` intentionally absent. |
 
