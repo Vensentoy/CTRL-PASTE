@@ -272,7 +272,7 @@ class CohortAggregator
             $monthPeriod = $slot['month']->toDateString();
 
             $war = WeeklyAccomplishmentReport::where('student_id', $studentId)
-                ->where('month_period', $monthPeriod)
+                ->whereDate('month_period', $monthPeriod)
                 ->first();
 
             if ($slot['slot1'] && (! $war || is_null($war->cycle1_id))) {
@@ -289,7 +289,7 @@ class CohortAggregator
             // than flagged.
             if ($slot['slot1'] && $slot['slot2']) {
                 $mar = MonthlyAccomplishmentReport::where('student_id', $studentId)
-                    ->where('month_period', $monthPeriod)
+                    ->whereDate('month_period', $monthPeriod)
                     ->first();
 
                 if (! $mar || $mar->status === 'Draft') {

@@ -23,7 +23,7 @@ class MarPdfController extends Controller
         $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
 
         $mar = $student->monthlyAccomplishmentReports()
-            ->where('month_period', $monthStart)
+            ->whereDate('month_period', $monthStart)
             ->firstOrFail();
 
         // Printing a still-Draft (never submitted) MAR isn't meaningful —

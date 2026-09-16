@@ -31,7 +31,7 @@ class WarPdfController extends Controller
         $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
 
         $war = $student->weeklyAccomplishmentReports()
-            ->where('month_period', $monthStart)
+            ->whereDate('month_period', $monthStart)
             ->firstOrFail();
 
         // At least one week must have moved past Draft — printing a

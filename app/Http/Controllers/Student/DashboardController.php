@@ -128,7 +128,7 @@ class DashboardController extends Controller
         // weekPairForCycle() is the model's own existing helper — not
         // reimplemented here.
         $war = WeeklyAccomplishmentReport::where('student_id', $student->id)
-            ->where('month_period', now()->startOfMonth()->toDateString())
+            ->whereDate('month_period', now()->startOfMonth()->toDateString())
             ->first();
 
         $warPair = $war?->weekPairForCycle($cycle->id);
@@ -140,7 +140,7 @@ class DashboardController extends Controller
         // MAR: single status field, single cycle_id — no rollup needed,
         // just a direct membership check against this cycle.
         $mar = MonthlyAccomplishmentReport::where('student_id', $student->id)
-            ->where('month_period', now()->startOfMonth()->toDateString())
+            ->whereDate('month_period', now()->startOfMonth()->toDateString())
             ->first();
 
         $marStatus = (! $mar || $mar->cycle_id !== $cycle->id)

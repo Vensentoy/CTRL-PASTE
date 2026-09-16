@@ -143,7 +143,7 @@ class MarController extends Controller
     private function monthlyHoursFromWar(int $studentId, string $monthPeriod): float
     {
         $war = WeeklyAccomplishmentReport::where('student_id', $studentId)
-            ->where('month_period', $monthPeriod)
+            ->whereDate('month_period', $monthPeriod)
             ->first();
 
         if (! $war) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OjtInformationSheet;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -27,9 +28,19 @@ class StoreInformationSheetRequest extends FormRequest
         // has been created yet — the one-time constraint (data-model.md)
         // enforced here in addition to the DB unique constraint, so the
         // user gets a real validation error instead of a raw SQL one.
-        return $this->user()?->isStudent()
-            && $this->user()->student !== null
-            && $this->user()->student->informationSheet === null;
+        //
+        // Deliberately a fresh DB existence check rather than the
+        // `->informationSheet` relation: Eloquent caches the (possibly
+        // null) result of a HasOne on the in-memory model, and that
+        // cache can outlive the DB write in long-lived processes (and
+        // in feature tests reusing an identical authenticated model
+        // instance across requests). The schema unique constraint is
+        // the real backstop; this query is the honest check against it.
+        if (! $this->user()?->isStudent() || $this->user()->student === null) {
+            return false;
+        }
+
+        return ! OjtInformationSheet::where('student_id', $this->user()->student->id)->exists();
     }
 
     public function rules(): array
@@ -107,7 +118,9 @@ class StoreInformationSheetRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if ($this->user()->student->informationSheet !== null) {
+            $student = $this->user()->student;
+
+            if ($student && OjtInformationSheet::where('student_id', $student->id)->exists()) {
                 $validator->errors()->add(
                     'city_address',
                     'Your OJT Information Sheet has already been submitted and cannot be resubmitted (one-time only).'
