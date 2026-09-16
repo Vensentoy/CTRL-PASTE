@@ -281,12 +281,13 @@
                 }).then(function (r) { return r.json(); }).then(function (data) {
                     imgWrap.innerHTML = '<img src="' + data.qr_data_url + '" alt="QR code" class="w-[300px] h-[300px]"/>';
                     display.classList.remove('hidden');
-                    var expiresAt = new Date(data.expires_at).getTime();
+                    // Countdown from server TTL, not wall-clock diff, to avoid clock-skew false Expired.
+                    var secs = data.ttl_seconds;
                     if (timer) clearInterval(timer);
                     function tick() {
-                        var secs = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
                         countdown.textContent = secs > 0 ? 'Expires in ' + secs + 's' : 'Expired — Generate again.';
-                        if (secs <= 0) { clearInterval(timer); }
+                        if (secs <= 0) { clearInterval(timer); return; }
+                        secs--;
                     }
                     tick();
                     timer = setInterval(tick, 1000);
