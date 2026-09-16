@@ -1,15 +1,15 @@
 # LLCC OJT System — Project State
 
-**Last updated:** 2026-08-22
-**Session summary:** Built items #3 and #4 of the user's four-item plan
-in one push — the Coordinator Student Roster + Reassignment feature
-(BR-1) and the full MAR module (data-model.md's Monthly Accomplishment
-Report). Delivered as a zip with a README covering judgment calls and a
-click-test list. **Not yet confirmed applied or click-tested by the
-user** — this session's uploaded "live" zip predates both features (no
-`Coordinator\StudentController`, no `MonthlyAccomplishmentReport` model
-anywhere in it), so everything below for items #3/#4 is "built and
-delivered," not "confirmed working," until the user reports back.
+**Last updated:** 2026-09-16
+**Session summary:** Phase 0 ground-truth pass (see
+OPENCODE_HANDOFF_PLAN.md). Confirmed the MAR module and the Coordinator
+Student Roster + Reassignment feature are now present in the live
+codebase (models, controllers, views, routes all wired) — the earlier
+"built but not yet applied" status lines were stale and are corrected
+below. Still **not click-tested** — that remains outstanding (see Next
+steps). Also: confirmed the app runs on MySQL (XAMPP), removed the
+stray root `ojt_system` SQLite file, deleted all `.bak.*` files, and
+verified install/migrate/boot.
 
 This file is a complete, self-contained picture of the app as it exists
 right now — it does not assume you've read any earlier version of this
@@ -36,8 +36,8 @@ actual `php -l` run (the sandbox has no `php` binary).
 | `app/Http/Controllers/Controller.php` | Base controller with `AuthorizesRequests` trait | Done, unchanged this session (fixed two sessions ago). |
 | DAR module (model, controller, request, policy, migration, views, PDF) | Full daily-report workflow | Done, unchanged this session. End-to-end click-through still **not yet confirmed live** — only WAR has been. |
 | WAR module (model, controller, request, policy, migration, views, PDF) | Full weekly-report workflow (BR-8) | Done, confirmed working end-to-end (confirmed 2 sessions ago). Unchanged this session except serving as MAR's structural reference. |
-| **MAR module (model, controller×2, requests×3, policy, migration, views×2, PDF)** | Monthly-report workflow | **Built this session — item #4.** Single-status-per-row shape mirroring DAR's review pattern, NOT WAR's four-section pattern — see "Judgment calls" below. **Not yet confirmed live.** |
-| **Coordinator student roster + reassignment (BR-1)** | Item #3 of the user's plan | **Built this session.** `Coordinator\StudentController` (`index`/`show`/`reassign`), `ReassignStudentRequest`, roster + detail views. Also fills in coordinator read-access to a student's company-assignment history (flagged as missing since the Company Switch UI session). **Not yet confirmed live.** |
+| **MAR module (model, controller×2, requests×3, policy, migration, views×2, PDF)** | Monthly-report workflow | **Built by the 2026-08-22 session; CONFIRMED PRESENT in the live codebase this Phase 0 pass** — model, controllers, policy, views, and routes (`student.mar.*`, `coordinator.mar.*`, `mar.pdf`) all exist and are wired. Single-status-per-row shape mirroring DAR's review pattern, NOT WAR's four-section pattern — see "Judgment calls" below. **Not yet click-tested.** |
+| **Coordinator student roster + reassignment (BR-1)** | Item #3 of the user's plan | **Built by the 2026-08-22 session; CONFIRMED PRESENT in the live codebase this Phase 0 pass.** `Coordinator\StudentController` (`index`/`show`/`reassign`), `ReassignStudentRequest`, roster + detail views, and routes (`coordinator.students.*`) all exist and are wired. Also fills in coordinator read-access to a student's company-assignment history (flagged as missing since the Company Switch UI session). **Not yet click-tested.** |
 | `app/Policies/StudentPolicy.php` | View/update authorization for Student | Existed already with the right shape for item #3 — **confirmed already registered** in `AppServiceProvider` by reading the live zip directly, contrary to the handoff note's assumption that it still needed registering. Untouched this session. |
 | `app/Providers/AppServiceProvider.php` | Policy registration | **Updated this session** — added `Gate::policy(MonthlyAccomplishmentReport::class, MarPolicy::class)`. `StudentPolicy`/`DarPolicy`/`WarPolicy` lines untouched (already correct). |
 | `app/Services/CompletedHoursRecalculator.php` | BR-10 completed-hours derivation | **Updated this session** — now sums Approved MAR hours (`monthly_total_hours`) alongside the existing DAR+WAR sums, replacing the comment placeholder that was already there. Same additive-sum approach, class not restructured. |
@@ -49,7 +49,7 @@ actual `php -l` run (the sandbox has no `php` binary).
 | Company switch UI (BR-12) | Student self-service company-change flow | Done, confirmed present in this session's uploaded live zip (the CompanyAssignmentController the previous session delivered is there) — but **still no explicit click-test report from the user**, so still listed as unconfirmed per the last session's convention until the user actually reports back. |
 | Submission Cycle creation (BR-5) | Coordinator-only cycle creation | Done, unchanged this session. |
 | OJT Information Sheet | One-time student onboarding form | Done, unchanged this session. Still not click-tested per prior sessions' notes. |
-| `database/database.sqlite` | Unused leftover file | Still present, harmless, never addressed, low priority. |
+| `ojt_system` (stray root SQLite, from an earlier data point) | Leftover inline SQLite file sitting at the project root (NOT in `database/`) | **Deleted this Phase 0 pass** — confirmed it was a SQLite format 3 DB with old data, confirmed the app runs on MySQL (`.env` `DB_CONNECTION=mysql`), then removed it. The old `database/database.sqlite` entry was already gone. |
 
 ## Business rules implemented so far
 
@@ -167,11 +167,13 @@ Module**, delivered together as one zip:
 - **Migration required this time** (unlike the Company Switch UI
   session, which needed none) — `php artisan migrate` must be run for
   `monthly_accomplishment_reports` to exist.
-- **Not yet applied or click-tested.** This session's uploaded "live"
-  zip has no `Coordinator\StudentController` and no
-  `MonthlyAccomplishmentReport` model anywhere in it, confirming the
-  delivery predates both features. The README's click-test list is
-  outstanding — see Next steps.
+- **Confirmed applied in the live codebase this Phase 0 pass** — all
+  new controllers/models/views/routes listed above are present and
+  wired (`Coordinator\StudentController`,
+  `MonthlyAccomplishmentReport`, `coordinator.students.*`,
+  `student.mar.*`, `coordinator.mar.*`, `mar.pdf`). **Still not
+  click-tested** — the README's click-test list is outstanding, see
+  Next steps.
 
 **Process notes reaffirmed this session** (carried forward, still
 holding): every file that replaces something the user already has was
@@ -182,12 +184,11 @@ confirm only the intended lines changed.
 
 ## Next steps / open questions
 
-1. **Apply and click-test items #3 and #4 (just built).** Run the
-   migration, drop in the new files, apply the seven full-file
-   replacements, run `view:clear` + `route:clear`, then work through the
-   README's 8-item click-test list — including manually creating a
-   second Coordinator account first, since `DevTestSeeder` only creates
-   one and reassignment needs a second coordinator to move a student to.
+1. **Click-test items #3 and #4 (now confirmed applied).** Work through
+   the README's 8-item click-test list against the live app — including
+   manually creating a second Coordinator account first, since
+   `DevTestSeeder` only creates one and reassignment needs a second
+   coordinator to move a student to.
 2. **The user's original 4-item plan is now fully built** (Info Sheet →
    Company Switch UI → Coordinator roster/reassignment → MAR), though
    only the Info Sheet and WAR have actually been click-tested live so
@@ -219,5 +220,6 @@ confirm only the intended lines changed.
     yet for any action).
 11. Same-day-cutover convention for company switches (from the Company
     Switch UI session) — still an unconfirmed judgment call.
-12. The leftover `database/database.sqlite` file — harmless, never
-    cleaned up, very low priority.
+12. ~~The leftover `database/database.sqlite` file~~ — resolved: it was
+    already gone; the stray root `ojt_system` SQLite was deleted in the
+    Phase 0 pass.
