@@ -16,13 +16,14 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Breeze scaffold validated `name`/`email`, but this system has
+        // neither column — users has `username` only (data-model.md).
+        // Keep the endpoint alive (profile.edit view still renders) but
+        // don't require email/name; validate username if supplied.
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
+            'username' => [
+                'sometimes',
                 'string',
-                'lowercase',
-                'email',
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],

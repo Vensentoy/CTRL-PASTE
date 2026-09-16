@@ -13,7 +13,13 @@ class PasswordUpdateTest extends TestCase
 
     public function test_password_can_be_updated(): void
     {
-        $user = User::factory()->create();
+        $user = User::create([
+            'role' => 'student',
+            'username' => 'pwduser',
+            'password' => Hash::make('password'),
+            'must_change_password' => false,
+            'status' => 'Active',
+        ]);
 
         $response = $this
             ->actingAs($user)
@@ -33,7 +39,13 @@ class PasswordUpdateTest extends TestCase
 
     public function test_correct_password_must_be_provided_to_update_password(): void
     {
-        $user = User::factory()->create();
+        $user = User::create([
+            'role' => 'student',
+            'username' => 'pwduser2',
+            'password' => Hash::make('password'),
+            'must_change_password' => false,
+            'status' => 'Active',
+        ]);
 
         $response = $this
             ->actingAs($user)

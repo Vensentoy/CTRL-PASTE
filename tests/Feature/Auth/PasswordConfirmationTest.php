@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class PasswordConfirmationTest extends TestCase
@@ -12,7 +13,13 @@ class PasswordConfirmationTest extends TestCase
 
     public function test_confirm_password_screen_can_be_rendered(): void
     {
-        $user = User::factory()->create();
+        $user = User::create([
+            'role' => 'student',
+            'username' => 'confirmuser',
+            'password' => Hash::make('password'),
+            'must_change_password' => false,
+            'status' => 'Active',
+        ]);
 
         $response = $this->actingAs($user)->get('/confirm-password');
 
@@ -21,7 +28,13 @@ class PasswordConfirmationTest extends TestCase
 
     public function test_password_can_be_confirmed(): void
     {
-        $user = User::factory()->create();
+        $user = User::create([
+            'role' => 'student',
+            'username' => 'confirmuser2',
+            'password' => Hash::make('password'),
+            'must_change_password' => false,
+            'status' => 'Active',
+        ]);
 
         $response = $this->actingAs($user)->post('/confirm-password', [
             'password' => 'password',
@@ -33,7 +46,13 @@ class PasswordConfirmationTest extends TestCase
 
     public function test_password_is_not_confirmed_with_invalid_password(): void
     {
-        $user = User::factory()->create();
+        $user = User::create([
+            'role' => 'student',
+            'username' => 'confirmuser3',
+            'password' => Hash::make('password'),
+            'must_change_password' => false,
+            'status' => 'Active',
+        ]);
 
         $response = $this->actingAs($user)->post('/confirm-password', [
             'password' => 'wrong-password',

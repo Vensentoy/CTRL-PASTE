@@ -42,16 +42,15 @@ MAR PDFs), simplesoftwareio/simple-qrcode (login-page QR). The DB is
 
 - `php artisan test tests/Feature/Workflows` → **60 passed, 0 failed**
   (235 assertions). This is the workflow click-test suite.
-- `php artisan test` (full suite) → **63 passed, 22 failed**, and the
-  22 failures are **all intentional or superseded** — they live in the
-  untouched Breeze scaffold under `tests/Feature/Auth/*` and fail
-  because (a) `App\Models\User::factory()` was removed (users are
-  seeded, not factory-generated — the scaffold tests call it) and (b)
-  `/register` and `/forgot-password` are **deliberately 404** per
-  `roles-and-permissions.md` (only seeded Student + OJT Coordinator
-  accounts exist; no self-service registration/password reset). None of
-  the workflow failures are in our code. Do not "fix" these without the
-  user asking — they're the perpetual, known-red set.
+- `php artisan test` (full suite) → **85 passed, 0 failed**
+  (286 assertions) — **fully green since 2026-09-16**. The former 22
+  Breeze reds under `tests/Feature/Auth/*` were fixed this session:
+  `User::factory()` replaced with direct `User::create()` + `Hash::make`
+  (no factory exists — users are seeded), `email` → `username` login,
+  `/register` and `/forgot-password` now correctly assert 404 per
+  `roles-and-permissions.md`, `ConfirmablePasswordController` fixed
+  from `email` to `username`, and `ProfileUpdateRequest` aligned to
+  `username` (Breeze's `name`/`email` don't exist on users table).
 
 ## Codebase inventory
 
@@ -164,17 +163,17 @@ covered rather than duplicated.
 
 ## Next steps / open questions
 
-1. **Decision for the user:** the 22 red Breeze `tests/Feature/Auth/*`
-   tests (no `User::factory()`, intentionally-404 `/register` and
-   `/forgot-password`). Proposal: delete them (they test behaviors the
-   spec forbids) or rewrite them against the seeded/login flow. Left
-   untouched because deleting test scaffold isn't in the phase plan.
+1. **Breeze 22 red — resolved 2026-09-16:** rewritten to assert the
+   intentional 404s for `/register` and `/forgot-password`, use
+   `username` login, and create users without `User::factory()`.
+   `ConfirmablePasswordController` and `ProfileUpdateRequest` were
+   corrected alongside the tests. Full suite is now green.
 2. **MAR PDF rendering** (carried judgment call): `activities_text` is
-   still a single blob rendered as one text block, not the official
-   form's per-date table — `data-model.md` gives MAR no per-date rows.
-   Resolution belongs to LLCC or a new `open-items.md` rule.
+    still a single blob rendered as one text block, not the official
+    form's per-date table — `data-model.md` gives MAR no per-date rows.
+    Resolution belongs to LLCC or a new `open-items.md` rule.
 3. **Same-day-cutover convention for company switches** (carried):
-   whether a switch with `start_date` = old `end_date` is acceptable.
-   Still an unconfirmed judgment call.
-4. Full-suite run command now `php artisan test`
-   (63 pass / 22 known-red); warm dev DB untouched — no reseed needed.
+    whether a switch with `start_date` = old `end_date` is acceptable.
+    Still an unconfirmed judgment call.
+4. Warm dev DB untouched — no reseed needed. Full-suite command is
+    `php artisan test` (85 passed, 0 failed).
