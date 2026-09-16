@@ -19,7 +19,7 @@ class QrTokenController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $ttl = (int) config('qr.ttl', env('QR_TTL', 120));
-        $expiresAt = now()->addSeconds($ttl);
+        $expiresAt = now('UTC')->addSeconds($ttl);
         $plain = Str::random(64);
 
         QrAccessToken::create([

@@ -21,7 +21,8 @@ class QrAccessToken extends Model
 
     public function isExpired(): bool
     {
-        return Carbon::now()->greaterThan($this->expires_at);
+        // Compare in UTC to avoid app.timezone vs DB timezone skew.
+        return Carbon::now('UTC')->greaterThan($this->expires_at->copy()->timezone('UTC'));
     }
 
     public function isExhausted(): bool

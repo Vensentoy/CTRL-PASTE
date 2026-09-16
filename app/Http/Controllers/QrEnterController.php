@@ -15,7 +15,7 @@ class QrEnterController extends Controller
         // to be coordinator-only; entry itself is guest-accessible.
 
         if (! URL::hasValidSignature($request)) {
-            return response()->view('auth.qr-expired', ['reason' => 'QR signature invalid or expired (2-min window). Ask coordinator to Generate again.'], 410);
+            return response()->view('auth.qr-expired', ['reason' => 'QR signature invalid or expired (server 2-min window). Ask coordinator to Generate again. Server now: '.now('UTC')->toDateTimeString().' UTC'], 410);
         }
 
         $plain = $request->query('token');
@@ -27,11 +27,15 @@ class QrEnterController extends Controller
         $token = QrAccessToken::where('token_hash', $hash)->first();
 
         if (! $token) {
-            return response()->view('auth.qr-expired', ['reason' => 'QR token not found. Ask your coordinator to Generate again.'], 410);
+            return response()->view('auth.qr-expired', ['reason' => 'QR token not found (hash '.substr($hash, 0, 8).'…). Ask your coordinator to Generate again.'], 410);
         }
 
-        if ($token->isExpired() || $token->isExhausted()) {
-            return response()->view('auth.qr-expired', ['reason' => 'QR expired or already used. Ask your coordinator to Generate again.'], 410);
+        if ($token->isExhausted()) {
+            return response()->view('auth.qr-expired', ['reason' => 'QR already used (single-use). Ask coordinator to Generate again.'], 410);
+        }
+
+        if ($token->isExpired()) {
+            return response()->view('auth.qr-expired', ['reason' => 'QR expired at '.$token->expires_at->timezone('UTC')->toDateTimeString().' UTC (server now '.now('UTC')->toDateTimeString().' UTC). Ask coordinator to Generate again.'], 410);
         }
 
         $token->markUsed();
