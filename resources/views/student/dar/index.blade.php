@@ -11,7 +11,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-8">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -31,10 +31,14 @@
 
         <div class="flex justify-between items-center">
             <h3 class="text-lg font-medium">Drafts</h3>
-            <a href="{{ route('student.dar.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md">
-                + New Entry
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('reports.bundle', request()->user()->student) }}"
+                   class="text-xs text-blue-600 hover:underline py-1">Download all reports (ZIP)</a>
+                <a href="{{ route('student.dar.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md">
+                    + New Entry
+                </a>
+            </div>
         </div>
 
         @php $drafts = $dars->where('status', 'Draft')->where('cycle_id', null); @endphp
@@ -61,17 +65,17 @@
             <div class="space-y-4">
                 <div class="border rounded-md divide-y">
                     @foreach ($drafts as $dar)
-                        <label class="flex items-center gap-3 p-3 text-sm">
-                            <input type="checkbox" name="dar_ids[]" value="{{ $dar->id }}" form="submit-drafts-form" class="rounded">
-                            <span class="w-28 text-gray-500">{{ $dar->report_date->toFormattedDateString() }}</span>
-                            <span class="flex-1 truncate">{{ $dar->activities_text }}</span>
-                            <span class="w-16 text-right">{{ number_format($dar->hours_rendered, 2) }}h</span>
-                            <a href="{{ route('student.dar.edit', $dar) }}" class="text-blue-600 hover:underline">Edit</a>
+                        <label class="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 text-sm">
+                            <input type="checkbox" name="dar_ids[]" value="{{ $dar->id }}" form="submit-drafts-form" class="rounded w-5 h-5 shrink-0">
+                            <span class="w-28 shrink-0 text-gray-500">{{ $dar->report_date->toFormattedDateString() }}</span>
+                            <span class="flex-1 min-w-0 truncate">{{ $dar->activitiesSummary() }}</span>
+                            <span class="w-16 shrink-0 text-right">{{ number_format($dar->hours_rendered, 2) }}h</span>
+                            <a href="{{ route('student.dar.edit', $dar) }}" class="text-blue-600 hover:underline px-1 py-2">Edit</a>
                             <form method="POST" action="{{ route('student.dar.destroy', $dar) }}"
                                   onsubmit="return confirm('Delete this draft?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                                <button type="submit" class="text-red-600 hover:underline px-1 py-2">Delete</button>
                             </form>
                         </label>
                     @endforeach
@@ -80,10 +84,10 @@
                 @if ($cycles->isEmpty())
                     <p class="text-sm text-amber-600">Your coordinator hasn't opened a submission cycle yet — drafts can't be submitted until one exists (BR-5).</p>
                 @else
-                    <form id="submit-drafts-form" method="POST" action="{{ route('student.dar.submit') }}" class="flex items-center gap-3">
+                    <form id="submit-drafts-form" method="POST" action="{{ route('student.dar.submit') }}" class="flex flex-col sm:flex-row sm:items-center gap-3">
                         @csrf
-                        <label for="cycle_id" class="text-sm font-medium">Submit checked drafts into:</label>
-                        <select name="cycle_id" id="cycle_id" class="rounded-md border-gray-300 text-sm">
+                        <label for="cycle_id" class="text-sm font-medium shrink-0">Submit checked drafts into:</label>
+                        <select name="cycle_id" id="cycle_id" class="rounded-md border-gray-300 text-sm w-full sm:w-auto min-w-0">
                             @foreach ($cycles as $cycle)
                                 <option value="{{ $cycle->id }}">
                                     {{ $cycle->cycle_name }}
@@ -92,7 +96,7 @@
                             @endforeach
                         </select>
                         <button type="submit"
-                                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md">
+                                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md text-center sm:w-auto">
                             Submit Selected
                         </button>
                     </form>
@@ -109,19 +113,19 @@
             @else
                 <div class="border rounded-md divide-y">
                     @foreach ($submitted as $dar)
-                        <div class="flex items-center gap-3 p-3 text-sm">
-                            <span class="w-28 text-gray-500">{{ $dar->report_date->toFormattedDateString() }}</span>
-                            <span class="flex-1 truncate">{{ $dar->activities_text }}</span>
-                            <span class="w-16 text-right">{{ number_format($dar->hours_rendered, 2) }}h</span>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 text-sm">
+                            <span class="w-28 shrink-0 text-gray-500">{{ $dar->report_date->toFormattedDateString() }}</span>
+                            <span class="flex-1 min-w-0 truncate">{{ $dar->activitiesSummary() }}</span>
+                            <span class="w-16 shrink-0 text-right">{{ number_format($dar->hours_rendered, 2) }}h</span>
                             <span @class([
-                                'px-2 py-0.5 rounded-full text-xs font-medium',
+                                'px-2 py-0.5 rounded-full text-xs font-medium shrink-0',
                                 'bg-yellow-100 text-yellow-800' => $dar->status === 'Pending',
                                 'bg-red-100 text-red-800' => in_array($dar->status, ['Late', 'Returned']),
                                 'bg-green-100 text-green-800' => $dar->status === 'Approved',
                             ])>{{ $dar->status }}</span>
 
                             @if ($dar->status === 'Returned')
-                                <a href="{{ route('student.dar.edit', $dar) }}" class="text-blue-600 hover:underline">Revise &amp; Resubmit</a>
+                                <a href="{{ route('student.dar.edit', $dar) }}" class="text-blue-600 hover:underline px-1 py-2">Revise &amp; Resubmit</a>
                             @endif
                         </div>
                         @if ($dar->status === 'Returned' && $dar->coordinator_comment)

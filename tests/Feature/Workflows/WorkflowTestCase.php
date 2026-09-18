@@ -78,20 +78,31 @@ abstract class WorkflowTestCase extends TestCase
 
     protected function makeDar(Student $student, array $attributes = []): DailyAccomplishmentReport
     {
-        $dar = new DailyAccomplishmentReport(array_merge([
+        // BR-3: hours_rendered is always derived server-side — the model
+        // mutator computes it from the `activities` array on create, so
+        // callers never set hours (or times) directly.
+        return DailyAccomplishmentReport::create(array_merge([
             'student_id' => $student->id,
             'report_date' => now()->toDateString(),
-            'activities_text' => 'Typical site activity for this test run.',
-            'time_started' => '08:00',
-            'time_ended' => '12:00',
+            'activities' => [
+                ['activity' => 'Typical site activity for this test run.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+            ],
             'remarks_student' => null,
             'status' => 'Draft',
         ], $attributes));
+    }
 
-        // BR-3: hours_rendered is always derived server-side.
-        $dar->hours_rendered = $dar->calculateHoursRendered();
-        $dar->save();
-
-        return $dar;
+    /**
+     * Multi-entry DAR fixture shaped like Lester's real 6/1/26
+     * (lester-reference-examples/): 4 itemized activities summing to 9h.
+     */
+    protected function lesterDayActivities(): array
+    {
+        return [
+            ['activity' => 'Disassembled computers for cleaning and troubleshooting.', 'time_started' => '07:30', 'time_ended' => '10:30'],
+            ['activity' => 'Reassembled the computer parts for output display.', 'time_started' => '10:30', 'time_ended' => '12:00'],
+            ['activity' => 'Toured the server room at the main company branch.', 'time_started' => '12:30', 'time_ended' => '15:30'],
+            ['activity' => 'Checked the server room and other rooms.', 'time_started' => '15:30', 'time_ended' => '17:00'],
+        ];
     }
 }

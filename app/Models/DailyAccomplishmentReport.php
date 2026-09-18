@@ -17,9 +17,7 @@ class DailyAccomplishmentReport extends Model
         'student_id',
         'cycle_id',
         'report_date',
-        'activities_text',
-        'time_started',
-        'time_ended',
+        'activities',
         'remarks_student',
         'status',
         'coordinator_comment',
@@ -28,8 +26,9 @@ class DailyAccomplishmentReport extends Model
     ];
 
     // hours_rendered is intentionally NOT fillable (BR-3). It must only
-    // ever be set via calculateHoursRendered() below, called server-side
-    // whenever time_started/time_ended are written.
+    // ever be set via setActivitiesAttribute() below, which recomputes it
+    // server-side from the `activities` array on every write of that
+    // field — never accepted as input, never trusted from the client.
 
     protected function casts(): array
     {
@@ -37,6 +36,7 @@ class DailyAccomplishmentReport extends Model
             'report_date' => 'date',
             'reviewed_at' => 'datetime',
             'hours_rendered' => 'decimal:2',
+            'activities' => 'array',
         ];
     }
 
@@ -56,24 +56,101 @@ class DailyAccomplishmentReport extends Model
     }
 
     /**
-     * BR-3: Hours Rendered = Time Ended − Time Started, always computed
-     * server-side. Call this and assign the result to hours_rendered
-     * yourself in the controller/service — it is deliberately NOT wired
-     * into a model event/mutator here, so that a save without a real
-     * time change (e.g. a status-only update from a review action) can't
-     * silently zero out or recompute a value it didn't intend to touch.
+     * BR-3: Hours Rendered = Σ over each activity entry of
+     * (time_ended − time_started), always computed server-side.
+     *
+     * Wired as a mutator on `activities` (not a saving-event observer):
+     * hours recompute exactly when the itemized entries are written, and
+     * never on a save that doesn't touch them (status-only updates from
+     * review actions, submits, soft deletes), so those paths can't
+     * silently zero out or recompute a value they didn't intend to touch.
+     * Hydration from the DB bypasses mutators, so stored totals are read
+     * back untouched.
+     *
+     * @param  array|string  $value  The entries array (or its JSON form).
      */
-    public function calculateHoursRendered(): float
+    public function setActivitiesAttribute(mixed $value): void
     {
-        $start = Carbon::parse($this->time_started);
-        $end = Carbon::parse($this->time_ended);
+        $entries = is_string($value)
+            ? (json_decode($value, true) ?? [])
+            : array_values((array) $value);
+
+        $this->attributes['activities'] = json_encode(array_values($entries));
+        $this->attributes['hours_rendered'] = self::hoursForActivities($entries);
+    }
+
+    /**
+     * Total hours for a set of activity entries. Pure helper — the same
+     * math the mutator above applies, exposed so seeders/tests can state
+     * expectations without duplicating the formula.
+     */
+    public static function hoursForActivities(array $entries): float
+    {
+        $minutes = 0;
+
+        foreach ($entries as $entry) {
+            $minutes += self::minutesBetween(
+                $entry['time_started'] ?? null,
+                $entry['time_ended'] ?? null
+            );
+        }
+
+        return round($minutes / 60, 2);
+    }
+
+    /**
+     * One-line summary for list rows (index/review screens): the first
+     * activity's text plus a "+N more" suffix when the date has several
+     * entries. Full detail lives on the edit form and the PDF.
+     */
+    public function activitiesSummary(): string
+    {
+        $entries = $this->activities ?? [];
+
+        if (empty($entries)) {
+            return '—';
+        }
+
+        $first = $entries[0]['activity'] ?? '—';
+        $extra = count($entries) - 1;
+
+        return $extra > 0 ? "{$first} (+{$extra} more)" : (string) $first;
+    }
+
+    /**
+     * Per-entry durations (hours), parallel to the `activities` array —
+     * feeds the PDF template's per-row "No. of Hours" cells.
+     *
+     * @return float[]
+     */
+    public function activityEntryHours(): array
+    {
+        return array_map(
+            fn ($entry) => round(self::minutesBetween(
+                $entry['time_started'] ?? null,
+                $entry['time_ended'] ?? null
+            ) / 60, 2),
+            $this->activities ?? []
+        );
+    }
+
+    /**
+     * Duration of one entry in whole minutes. Malformed entries (missing
+     * times) contribute 0 rather than throwing — validation guarantees
+     * shape on write, this only guards reads of legacy/hand-made rows.
+     */
+    protected static function minutesBetween(mixed $start, mixed $end): int
+    {
+        if (! is_string($start) || $start === '' || ! is_string($end) || $end === '') {
+            return 0;
+        }
 
         // Explicit `true` here is required, not stylistic: Carbon 3
         // (this project uses 3.13.2, confirmed via composer.lock) changed
         // diffInMinutes()'s default $absolute from true (Carbon 2's
         // behavior) to false, so this could silently return a negative
         // value depending on argument order without this flag.
-        return round($end->diffInMinutes($start, true) / 60, 2);
+        return Carbon::parse($end)->diffInMinutes(Carbon::parse($start), true);
     }
 
     /**

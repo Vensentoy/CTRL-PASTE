@@ -7,11 +7,19 @@
     own documented note: the MonthlyAccomplishmentReport entity in
     data-model.md stores ONE free-text activities_text field per month,
     not a per-date list — there's no per-date data on the MAR row
-    itself to populate that table with. Rendered here as a single text
-    block instead. Flagging this as an open question rather than
-    silently deriving a per-date breakdown from that student's DAR rows
-    for the month, since data-model.md doesn't establish a relationship
-    between MAR and DAR beyond both belonging to the same student.
+    itself to populate that table with. The table shell below is
+    structural/branding only: a single body row whose gold Date cell
+    carries the month label (already on the row) and whose right cell
+    holds the activities_text blob — no per-date content is fabricated.
+    Do not derive per-date rows from DAR here, since data-model.md
+    doesn't establish a relationship between MAR and DAR beyond both
+    belonging to the same student.
+
+    Branding (official docx ground truth): letterhead banner + footer bar
+    come from pdf.partials.letterhead / pdf.partials.footer; table header
+    row #C5E0B3, date column #FFD966, Remarks/Status band #C5E0B3. MAR has
+    no subtotal rows (single continuous table), so the two grays from the
+    brand system don't apply here.
 
     Signature block fields are always blank per workflows.md §6, same
     as the DAR/WAR templates.
@@ -20,30 +28,34 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 10px; color: #111; }
-        .header-org { text-align: center; margin-bottom: 10px; }
-        .header-org h2 { margin: 0; font-size: 13px; }
-        .header-org p { margin: 0; font-size: 9px; }
+        @page { margin: 0; }
+        body { margin: 0; padding: 0; font-family: 'DejaVu Sans', sans-serif; font-size: 10px; color: #111; }
+        .page-content { padding: 20px 30px 40px; }
         table.info { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         table.info td { padding: 2px 4px; font-size: 9px; }
         table.info td.label { font-weight: bold; width: 18%; }
         .summary-heading { font-size: 10px; font-weight: bold; margin: 10px 0 3px; }
-        .activities-block { border: 1px solid #333; padding: 8px; font-size: 9px; min-height: 120px; white-space: pre-wrap; }
-        .remarks-block { border: 1px solid #333; padding: 8px; font-size: 9px; margin-top: 8px; min-height: 40px; }
+        table.activities { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        table.activities th, table.activities td {
+            border: 1px solid #333; padding: 3px 4px; font-size: 8.5px; vertical-align: top;
+        }
+        table.activities th { background: #C5E0B3; text-align: left; }
+        .col-date { width: 14%; background: #FFD966; font-weight: bold; }
+        .activities-cell { white-space: pre-wrap; min-height: 120px; }
+        .remarks-heading { font-size: 10px; font-weight: bold; margin: 10px 0 0; background: #C5E0B3; border: 1px solid #333; border-bottom: none; padding: 3px 4px; }
+        .remarks-block { border: 1px solid #333; padding: 8px; font-size: 9px; min-height: 40px; }
         .grand-total { text-align: right; font-weight: bold; font-size: 11px; margin: 8px 0 16px; }
         .signatures { margin-top: 24px; }
         .sig-line { margin-top: 26px; border-top: 1px solid #333; width: 70%; padding-top: 2px; font-size: 8.5px; }
         .sig-date { float: right; width: 25%; border-top: 1px solid #333; margin-top: -14px; padding-top: 2px; font-size: 8.5px; text-align: center; }
-        .footer { text-align: center; font-size: 7.5px; color: #555; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="header-org">
-    <h2>Lapu-Lapu City College</h2>
-    <p>Don B. Benedicto Rd., Gun-ob, Lapu-Lapu City, 6015 &mdash; School Code: 7174</p>
-    <p style="margin-top:6px; font-size:11px; font-weight:bold;">MONTHLY ACCOMPLISHMENT REPORT</p>
-</div>
+@include('pdf.partials.letterhead')
+
+<div class="page-content">
+<p style="margin:0 0 8px; font-size:11px; font-weight:bold; text-align:center;">MONTHLY ACCOMPLISHMENT REPORT</p>
 
 <table class="info">
     <tr>
@@ -69,9 +81,22 @@
 </table>
 
 <div class="summary-heading">Note: Summary of Weekly Accomplishment Reports (Week 1&ndash;4)</div>
-<div class="activities-block">{{ $mar->activities_text }}</div>
+<table class="activities">
+    <thead>
+        <tr>
+            <th class="col-date">Date</th>
+            <th>List of Activities Accomplished</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="col-date">{{ $mar->month_period->format('F Y') }}</td>
+            <td class="activities-cell">{{ $mar->activities_text }}</td>
+        </tr>
+    </tbody>
+</table>
 
-<div class="summary-heading">Remarks/Status</div>
+<div class="remarks-heading">Remarks/Status</div>
 <div class="remarks-block">{{ $mar->remarks ?? '—' }}</div>
 
 <div class="grand-total">MONTHLY TOTAL HOURS: {{ number_format($mar->monthly_total_hours, 2) }}</div>
@@ -89,10 +114,9 @@
     <div class="sig-date">Date</div>
     <div style="clear:both;"></div>
 </div>
-
-<div class="footer">
-    Website: www.llcc.edu.ph &mdash; Fb page: LLCC Public Information Office &mdash; Email: llccadmin@llcc.edu.ph
 </div>
+
+@include('pdf.partials.footer')
 
 </body>
 </html>

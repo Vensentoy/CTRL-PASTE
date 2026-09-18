@@ -10,20 +10,29 @@ class EnsureQrAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Bypass for dev/testing so suite doesn't lock out, but allow real
-        // gate test on LAN by setting APP_ENV=production or QR_GATE_ENFORCE=true.
-        // Local still bypasses unless QR_GATE_ENFORCE is set to force gate even in local.
-        if (env('QR_GATE_ENFORCE', false)) {
-            // Force gate even in local/testing when user wants to demo expiry.
-        } elseif (app()->environment('local') || env('QR_GATE_BYPASS', false)) {
+        // The gate is ENFORCED by default in every environment (local
+        // included — "only by scanning the QR can they access the
+        // website"). The ONLY automatic bypass is the test suite, so
+        // feature tests can hit /login directly without a QR session.
+        // Local/dev opt-out is explicit and off by default: set
+        // QR_GATE_BYPASS_LOCAL=true to bypass outside testing.
+        if (app()->environment('testing') && config('qr.bypass_in_testing', true)) {
             return $next($request);
         }
-        if (app()->environment('testing') && config('qr.bypass_in_testing', true)) {
+        if (config('qr.bypass_local', false)) {
             return $next($request);
         }
 
         // Coordinators can log in directly to Generate the QR — otherwise no one
         // could bootstrap the gate. Check username before auth (role not known yet).
+        // The login FORM itself (GET) always renders — the form was never the
+        // gate, and hiding it deadlocked coordinators out of the very login
+        // they need to generate the first QR. Enforcement lives on POST
+        // below: without a verified session, only coordinator usernames
+        // pass; everyone else gets the QR-required block.
+        if ($request->isMethod('get') && ($request->routeIs('login') || $request->is('login'))) {
+            return $next($request);
+        }
         if ($request->isMethod('post') && ($request->routeIs('login') || $request->is('login'))) {
             $username = $request->input('username');
             if ($username) {

@@ -17,7 +17,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 text-sm mb-6">
             This form can only be submitted once. Please review everything before saving.
@@ -37,10 +37,10 @@
             @csrf
 
             {{-- A. Personal Data --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-4">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">A. Personal Data</h3>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">City Address</label>
                         <input type="text" name="city_address" required value="{{ old('city_address') }}"
@@ -53,7 +53,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Gender</label>
                         <select name="gender" required class="mt-1 block w-full rounded-md border-gray-300 text-sm">
@@ -74,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Birth Date</label>
                         <input type="date" name="birth_date" required value="{{ old('birth_date') }}"
@@ -87,7 +87,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Religion</label>
                         <input type="text" name="religion" value="{{ old('religion') }}"
@@ -102,13 +102,13 @@
             </div>
 
             {{-- B. Family Data --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-6">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">B. Family Data</h3>
 
                 @foreach (['father' => "Father's", 'mother' => "Mother's"] as $prefix => $label)
                     <div class="space-y-3">
                         <p class="text-xs font-medium text-gray-500 uppercase">{{ $label }} Information</p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <input type="text" name="{{ $prefix }}_name" placeholder="Name" value="{{ old("{$prefix}_name") }}"
                                    class="rounded-md border-gray-300 text-sm">
                             <input type="text" name="{{ $prefix }}_occupation" placeholder="Occupation" value="{{ old("{$prefix}_occupation") }}"
@@ -118,50 +118,50 @@
                             <input type="text" name="{{ $prefix }}_company_address" placeholder="Company Address" value="{{ old("{$prefix}_company_address") }}"
                                    class="rounded-md border-gray-300 text-sm">
                             <input type="text" name="{{ $prefix }}_contact" placeholder="Contact Number" value="{{ old("{$prefix}_contact") }}"
-                                   class="rounded-md border-gray-300 text-sm col-span-2">
+                                   class="rounded-md border-gray-300 text-sm sm:col-span-2">
                         </div>
                     </div>
                 @endforeach
 
                 <div class="space-y-3">
                     <p class="text-xs font-medium text-gray-500 uppercase">Guardian's Information</p>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <input type="text" name="guardian_name" placeholder="Name" value="{{ old('guardian_name') }}"
                                class="rounded-md border-gray-300 text-sm">
                         <input type="text" name="guardian_contact" placeholder="Contact Number" value="{{ old('guardian_contact') }}"
                                class="rounded-md border-gray-300 text-sm">
                         <input type="text" name="guardian_address" placeholder="Home Address" value="{{ old('guardian_address') }}"
-                               class="rounded-md border-gray-300 text-sm col-span-2">
+                               class="rounded-md border-gray-300 text-sm sm:col-span-2">
                     </div>
                 </div>
             </div>
 
             {{-- C. Scholastic Data --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-6">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">C. Scholastic Data</h3>
 
                 @foreach (['tertiary' => 'Tertiary', 'secondary' => 'Secondary', 'primary' => 'Primary'] as $prefix => $label)
                     <div class="space-y-3">
                         <p class="text-xs font-medium text-gray-500 uppercase">{{ $label }}</p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <input type="text" name="{{ $prefix }}_school" placeholder="School" value="{{ old("{$prefix}_school") }}"
-                                   class="rounded-md border-gray-300 text-sm col-span-2">
+                                   class="rounded-md border-gray-300 text-sm sm:col-span-2">
                             <input type="text" name="{{ $prefix }}_address" placeholder="Address" value="{{ old("{$prefix}_address") }}"
                                    class="rounded-md border-gray-300 text-sm">
                             <input type="text" name="{{ $prefix }}_year_graduated" placeholder="Year Graduated" value="{{ old("{$prefix}_year_graduated") }}"
                                    class="rounded-md border-gray-300 text-sm">
                             <input type="text" name="{{ $prefix }}_honors" placeholder="Honors/Awards" value="{{ old("{$prefix}_honors") }}"
-                                   class="rounded-md border-gray-300 text-sm col-span-2">
+                                   class="rounded-md border-gray-300 text-sm sm:col-span-2">
                         </div>
                     </div>
                 @endforeach
             </div>
 
             {{-- D. Health Data --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-4">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">D. Health Data</h3>
 
-                <div class="grid grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Height (cm)</label>
                         <input type="number" step="0.01" name="height" value="{{ old('height') }}"
@@ -184,7 +184,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Vaccination Status</label>
                         <select name="vaccination_status" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
@@ -201,7 +201,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Place of Vaccination</label>
                         <input type="text" name="vaccination_place" value="{{ old('vaccination_place') }}"
@@ -214,7 +214,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Health Insurance</label>
                         <select name="health_insurance_type" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
@@ -232,7 +232,7 @@
             </div>
 
             {{-- E. OJT Work Experiences --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-6">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">
                     E. OJT Work Experiences <span class="text-gray-400 normal-case">(4th Year Students — leave blank if none)</span>
                 </h3>
@@ -240,7 +240,7 @@
                 @for ($i = 0; $i < 3; $i++)
                     <div class="space-y-3 border-t pt-4 first:border-t-0 first:pt-0">
                         <p class="text-xs font-medium text-gray-500 uppercase">Entry {{ $i + 1 }}</p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <input type="text" name="work_experiences[{{ $i }}][ojt_assignment]" placeholder="OJT Assignment"
                                    value="{{ old("work_experiences.$i.ojt_assignment") }}"
                                    class="rounded-md border-gray-300 text-sm">
@@ -255,14 +255,14 @@
                                    class="rounded-md border-gray-300 text-sm">
                             <input type="text" name="work_experiences[{{ $i }}][ojt_site_address]" placeholder="OJT Site Address"
                                    value="{{ old("work_experiences.$i.ojt_site_address") }}"
-                                   class="rounded-md border-gray-300 text-sm col-span-2">
+                                   class="rounded-md border-gray-300 text-sm sm:col-span-2">
                         </div>
                     </div>
                 @endfor
             </div>
 
             {{-- Attestation --}}
-            <div class="bg-white p-6 rounded-md shadow-sm border space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-md shadow-sm border space-y-4">
                 <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide">Attestation</h3>
                 <p class="text-xs text-gray-500">
                     Your signature will be collected physically on the printed copy. This date confirms when you completed this form.

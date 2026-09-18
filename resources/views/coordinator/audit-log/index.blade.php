@@ -12,7 +12,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         <p class="text-sm text-gray-500">
             Your own actions, plus submissions and events logged by students
@@ -58,19 +58,19 @@
                     ];
                     $badgeClass = $badgeColors[$log->action_type] ?? 'bg-gray-100 text-gray-700';
                 @endphp
-                <div class="p-4 text-sm flex justify-between items-start gap-4">
-                    <div>
-                        <div class="flex items-center gap-2">
+                <div class="p-4 text-sm flex flex-wrap justify-between items-start gap-x-4 gap-y-2">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
                             <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
                                 {{ $log->action_type }}
                             </span>
-                            <span class="font-medium">{{ $actorName }}</span>
+                            <span class="font-medium break-words">{{ $actorName }}</span>
                         </div>
                         @if ($log->action_details)
-                            <p class="text-xs text-gray-600 mt-1">{{ $log->action_details }}</p>
+                            <p class="text-xs text-gray-600 mt-1 break-words">{{ $log->action_details }}</p>
                         @endif
                     </div>
-                    <span class="text-xs text-gray-500 whitespace-nowrap">
+                    <span class="text-xs text-gray-500 whitespace-nowrap shrink-0">
                         {{ $log->created_at->format('M j, Y g:i A') }}
                     </span>
                 </div>

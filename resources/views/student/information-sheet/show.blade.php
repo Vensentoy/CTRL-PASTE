@@ -11,7 +11,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -25,7 +25,7 @@
 
         <div class="bg-white p-6 rounded-md shadow-sm border space-y-2">
             <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide mb-2">A. Personal Data</h3>
-            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div><dt class="text-gray-500">City Address</dt><dd>{{ $sheet->city_address }}</dd></div>
                 <div><dt class="text-gray-500">Provincial Address</dt><dd>{{ $sheet->provincial_address ?: '—' }}</dd></div>
                 <div><dt class="text-gray-500">Gender</dt><dd>{{ $sheet->gender }}</dd></div>
@@ -78,7 +78,7 @@
 
         <div class="bg-white p-6 rounded-md shadow-sm border">
             <h3 class="font-semibold text-sm text-gray-900 uppercase tracking-wide mb-2">D. Health Data</h3>
-            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div><dt class="text-gray-500">Height / Weight</dt><dd>{{ $sheet->height ?: '—' }} cm / {{ $sheet->weight ?: '—' }} kg</dd></div>
                 <div><dt class="text-gray-500">Blood Type</dt><dd>{{ $sheet->blood_type ?: '—' }}</dd></div>
                 <div><dt class="text-gray-500">Health Problem</dt><dd>{{ $sheet->health_problem ?: '—' }}</dd></div>
@@ -106,7 +106,8 @@
             </div>
         @endif
 
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-3">
+            <a href="{{ route('info-sheet.pdf', $sheet->student_id) }}" class="px-4 py-2 text-sm font-medium text-indigo-700">Print / PDF</a>
             <a href="{{ route('student.dashboard') }}" class="px-4 py-2 text-sm text-gray-600">Back to Dashboard</a>
         </div>
     </div>

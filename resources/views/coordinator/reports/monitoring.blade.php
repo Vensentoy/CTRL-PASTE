@@ -11,7 +11,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         <p class="text-sm text-gray-500">
             Coverage {{ $cycle->coverage_start_date->toFormattedDateString() }}

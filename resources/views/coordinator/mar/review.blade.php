@@ -10,7 +10,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -33,11 +33,11 @@
                        target="_blank" class="text-xs text-blue-600 hover:underline">Download PDF</a>
                 </div>
                 <div class="p-4 text-sm space-y-2">
-                    <div class="flex items-center gap-3">
-                        <span class="flex-1">{{ $mar->activities_text }}</span>
-                        <span class="w-20 text-right">{{ number_format($mar->monthly_total_hours, 2) }}h</span>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <span class="flex-1 min-w-0 break-words">{{ $mar->activities_text }}</span>
+                        <span class="w-20 shrink-0 text-right">{{ number_format($mar->monthly_total_hours, 2) }}h</span>
                         <span @class([
-                            'px-2 py-0.5 rounded-full text-xs font-medium',
+                            'px-2 py-0.5 rounded-full text-xs font-medium shrink-0',
                             'bg-yellow-100 text-yellow-800' => $mar->status === 'Pending',
                             'bg-red-100 text-red-800' => in_array($mar->status, ['Late', 'Returned']),
                             'bg-green-100 text-green-800' => $mar->status === 'Approved',
@@ -46,15 +46,17 @@
 
                     @if (in_array($mar->status, ['Pending', 'Late']))
                         <form method="POST" action="{{ route('coordinator.mar.review.act', $mar) }}"
-                              class="flex items-start gap-3 mt-2">
+                              class="flex flex-col sm:flex-row sm:items-start gap-3 mt-2">
                             @csrf
                             @method('PATCH')
                             <textarea name="coordinator_comment" rows="1" placeholder="Comment (required to return)"
-                                      class="flex-1 rounded-md border-gray-300 text-xs"></textarea>
+                                      class="flex-1 min-w-0 rounded-md border-gray-300 text-xs"></textarea>
+                            <div class="flex gap-2 shrink-0">
                             <button type="submit" name="decision" value="approve"
                                     class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md">Approve</button>
                             <button type="submit" name="decision" value="return"
                                     class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md">Return</button>
+                            </div>
                         </form>
                     @elseif ($mar->status === 'Approved')
                         <p class="text-xs text-gray-400">

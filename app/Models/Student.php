@@ -26,7 +26,9 @@ class Student extends Model
     ];
 
     // completed_hours is intentionally NOT fillable. It is derived from
-    // approved DAR/WAR/MAR hours and must only ever be set by a
+    // approved DAR + WAR-week hours only (BR-2/BR-10: MAR rows are
+    // excluded since their total is derived from WAR weeks — counting
+    // both would double-count) and must only ever be set by a
     // server-side recalculation routine (data-model.md, BR-3 principle).
     // Do not add it to $fillable when DAR/WAR/MAR land later.
 

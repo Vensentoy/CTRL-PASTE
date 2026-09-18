@@ -224,27 +224,30 @@ class FullFeatureTestSeeder extends Seeder
             'start_date' => $now->copy()->toDateString(), 'end_date' => null,
         ]);
 
-        // Fully-approved DAR/WAR/MAR for month M-2
+        // Fully-approved DAR/WAR/MAR for month M-2. Each DAR date carries
+        // 3 itemized entries (morning / afternoon / wrap-up) summing to a
+        // full 8h day; hours_rendered is derived by the model mutator.
         foreach ([$cycleA1, $cycleA2] as $i => $cycle) {
             foreach ([0, 1] as $dayOffset) {
                 $reportDate = $cycle->coverage_start_date->copy()->addDays($dayOffset + 1);
-                $dar = DailyAccomplishmentReport::create([
+                DailyAccomplishmentReport::create([
                     'student_id' => $juan->id, 'cycle_id' => $cycle->id, 'report_date' => $reportDate->toDateString(),
-                    'activities_text' => 'Worked on assigned web development tasks and attended team standup.',
-                    'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+                    'activities' => [
+                        ['activity' => 'Worked on assigned web development tasks.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                        ['activity' => 'Attended team standup and continued feature work.', 'time_started' => '13:00', 'time_ended' => '16:00'],
+                        ['activity' => 'Code review participation and wrap-up notes.', 'time_started' => '16:00', 'time_ended' => '17:00'],
+                    ],
                     'remarks_student' => null, 'status' => 'Approved',
                     'coordinator_comment' => null, 'reviewed_by' => $coord1User->id, 'reviewed_at' => $cycle->deadline_date,
                 ]);
-                $dar->hours_rendered = $dar->calculateHoursRendered();
-                $dar->save();
             }
         }
         $juanWar = WeeklyAccomplishmentReport::create([
             'student_id' => $juan->id, 'month_period' => $monthM2->toDateString(),
-            'week1_activities' => 'Onboarding and initial dev environment setup.', 'week1_hours' => 40.00, 'week1_status' => 'Approved', 'week1_comment' => null,
-            'week2_activities' => 'Built first feature module.', 'week2_hours' => 40.00, 'week2_status' => 'Approved', 'week2_comment' => null,
-            'week3_activities' => 'Bug fixes and code review participation.', 'week3_hours' => 40.00, 'week3_status' => 'Approved', 'week3_comment' => null,
-            'week4_activities' => 'Feature testing and documentation.', 'week4_hours' => 40.00, 'week4_status' => 'Approved', 'week4_comment' => null,
+            'week1_activities' => ['Onboarding and workstation setup.', 'Initial dev environment configuration.', 'Codebase walkthrough with mentor.'], 'week1_hours' => 40.00, 'week1_status' => 'Approved', 'week1_comment' => null,
+            'week2_activities' => ['Built first feature module.', 'Wrote unit tests for the module.', 'Peer review fixes.'], 'week2_hours' => 40.00, 'week2_status' => 'Approved', 'week2_comment' => null,
+            'week3_activities' => ['Bug fixes from QA tickets.', 'Code review participation.', 'Staging verification.'], 'week3_hours' => 40.00, 'week3_status' => 'Approved', 'week3_comment' => null,
+            'week4_activities' => ['Feature testing and documentation.', 'Demo preparation.', 'Sprint retrospective.'], 'week4_hours' => 40.00, 'week4_status' => 'Approved', 'week4_comment' => null,
             'cycle1_id' => $cycleA1->id, 'cycle2_id' => $cycleA2->id,
         ]);
         MonthlyAccomplishmentReport::create([
@@ -255,14 +258,14 @@ class FullFeatureTestSeeder extends Seeder
         ]);
 
         // One in-progress draft in the current open cycle
-        $draftDar = DailyAccomplishmentReport::create([
+        DailyAccomplishmentReport::create([
             'student_id' => $juan->id, 'cycle_id' => null, 'report_date' => $now->copy()->subDay()->toDateString(),
-            'activities_text' => 'Started work on the new reporting dashboard feature.',
-            'time_started' => '08:00:00', 'time_ended' => '16:30:00',
+            'activities' => [
+                ['activity' => 'Started work on the new reporting dashboard feature.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ['activity' => 'Dashboard layout draft and component wiring.', 'time_started' => '13:00', 'time_ended' => '16:30'],
+            ],
             'remarks_student' => null, 'status' => 'Draft',
         ]);
-        $draftDar->hours_rendered = $draftDar->calculateHoursRendered();
-        $draftDar->save();
 
         $hoursRecalc->recalculate($juan);
         $auditLogger->log($juanUser, 'Submit', 'Submitted DAR/WAR/MAR for ' . $monthM2->format('F Y') . ' (seed data).');
@@ -294,24 +297,24 @@ class FullFeatureTestSeeder extends Seeder
 
         foreach ([0, 1] as $dayOffset) {
             $reportDate = $cycleB1->coverage_start_date->copy()->addDays($dayOffset + 1);
-            $dar = DailyAccomplishmentReport::create([
+            DailyAccomplishmentReport::create([
                 'student_id' => $ana->id, 'cycle_id' => $cycleB1->id, 'report_date' => $reportDate->toDateString(),
-                'activities_text' => 'Assisted with hardware diagnostics and customer support tickets.',
-                'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+                'activities' => [
+                    ['activity' => 'Assisted with hardware diagnostics.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                    ['activity' => 'Handled customer support tickets.', 'time_started' => '13:00', 'time_ended' => '17:00'],
+                ],
                 'remarks_student' => null, 'status' => 'Pending',
             ]);
-            $dar->hours_rendered = $dar->calculateHoursRendered();
-            $dar->save();
         }
         $reportDateB2 = $cycleB2->coverage_start_date->copy()->addDay();
-        $darB2 = DailyAccomplishmentReport::create([
+        DailyAccomplishmentReport::create([
             'student_id' => $ana->id, 'cycle_id' => $cycleB2->id, 'report_date' => $reportDateB2->toDateString(),
-            'activities_text' => 'Continued technical support rotation.',
-            'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+            'activities' => [
+                ['activity' => 'Continued technical support rotation.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ['activity' => 'Documented resolved tickets for handover.', 'time_started' => '13:00', 'time_ended' => '17:00'],
+            ],
             'remarks_student' => null, 'status' => 'Pending',
         ]);
-        $darB2->hours_rendered = $darB2->calculateHoursRendered();
-        $darB2->save();
 
         // WAR spans two cycles: Week 1-2 submitted (Pending), Week 3-4
         // filled in and submitted too (§5 setup item -- this is data
@@ -320,10 +323,10 @@ class FullFeatureTestSeeder extends Seeder
         // itself, which is already covered as a UI test in §4).
         WeeklyAccomplishmentReport::create([
             'student_id' => $ana->id, 'month_period' => $monthM1->toDateString(),
-            'week1_activities' => 'Hardware diagnostics training.', 'week1_hours' => 38.00, 'week1_status' => 'Pending', 'week1_comment' => null,
-            'week2_activities' => 'Shadowed senior technician on service calls.', 'week2_hours' => 40.00, 'week2_status' => 'Pending', 'week2_comment' => null,
-            'week3_activities' => 'Refactored the intake form validation and added unit tests.', 'week3_hours' => 40.00, 'week3_status' => 'Pending', 'week3_comment' => null,
-            'week4_activities' => 'Deployed the fix to staging and documented the change for the team.', 'week4_hours' => 38.00, 'week4_status' => 'Pending', 'week4_comment' => null,
+            'week1_activities' => ['Hardware diagnostics training.', 'Workbench safety orientation.'], 'week1_hours' => 38.00, 'week1_status' => 'Pending', 'week1_comment' => null,
+            'week2_activities' => ['Shadowed senior technician on service calls.', 'Logged call outcomes in the tracker.'], 'week2_hours' => 40.00, 'week2_status' => 'Pending', 'week2_comment' => null,
+            'week3_activities' => ['Refactored the intake form validation.', 'Added unit tests for the form.'], 'week3_hours' => 40.00, 'week3_status' => 'Pending', 'week3_comment' => null,
+            'week4_activities' => ['Deployed the fix to staging.', 'Documented the change for the team.'], 'week4_hours' => 38.00, 'week4_status' => 'Pending', 'week4_comment' => null,
             'cycle1_id' => $cycleB1->id, 'cycle2_id' => $cycleB2->id,
         ]);
         // Both cycle slots now exist for this month -> her MAR should
@@ -374,19 +377,19 @@ class FullFeatureTestSeeder extends Seeder
             'start_date' => $mark->ojt_start_date, 'end_date' => null,
         ]);
         $reportDateMark = $cycleB1->coverage_start_date->copy()->addDays(2);
-        $darMark = DailyAccomplishmentReport::create([
+        DailyAccomplishmentReport::create([
             'student_id' => $mark->id, 'cycle_id' => $cycleB1->id, 'report_date' => $reportDateMark->toDateString(),
-            'activities_text' => 'Helped with network cable management.',
-            'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+            'activities' => [
+                ['activity' => 'Helped with network cable management.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ['activity' => 'Labeled patch panel ports.', 'time_started' => '13:00', 'time_ended' => '17:00'],
+            ],
             'remarks_student' => null, 'status' => 'Returned',
             'coordinator_comment' => 'Please add more detail about which specific tasks you performed and any issues encountered.',
             'reviewed_by' => $coord1User->id, 'reviewed_at' => $cycleB1->deadline_date,
         ]);
-        $darMark->hours_rendered = $darMark->calculateHoursRendered();
-        $darMark->save();
         WeeklyAccomplishmentReport::create([
             'student_id' => $mark->id, 'month_period' => $monthM1->toDateString(),
-            'week1_activities' => 'Network support tasks.', 'week1_hours' => 35.00, 'week1_status' => 'Returned',
+            'week1_activities' => ['Network support tasks.', 'Cable tracing in the server room.'], 'week1_hours' => 35.00, 'week1_status' => 'Returned',
             'week1_comment' => 'Hours logged look inconsistent with the daily reports for the same week -- please double check.',
             'week2_activities' => null, 'week2_hours' => null, 'week2_status' => 'Draft', 'week2_comment' => null,
             'week3_activities' => null, 'week3_hours' => null, 'week3_status' => 'Draft', 'week3_comment' => null,
@@ -425,15 +428,15 @@ class FullFeatureTestSeeder extends Seeder
 
         // One separate DAR, explicitly submitted-but-late (distinct from
         // "never submitted"), just outside those months.
-        $lateDar = DailyAccomplishmentReport::create([
+        DailyAccomplishmentReport::create([
             'student_id' => $liza->id, 'cycle_id' => $cycleB1->id,
             'report_date' => $cycleB1->coverage_start_date->copy()->addDays(3)->toDateString(),
-            'activities_text' => 'Field service call assistance (submitted after the cycle deadline).',
-            'time_started' => '09:00:00', 'time_ended' => '16:00:00',
+            'activities' => [
+                ['activity' => 'Field service call assistance (submitted after the cycle deadline).', 'time_started' => '09:00', 'time_ended' => '12:00'],
+                ['activity' => 'Assisted senior technician with on-site diagnostics.', 'time_started' => '13:00', 'time_ended' => '16:00'],
+            ],
             'remarks_student' => 'Sorry for the late submission.', 'status' => 'Late',
         ]);
-        $lateDar->hours_rendered = $lateDar->calculateHoursRendered();
-        $lateDar->save();
 
         // ================================================================
         // STUDENT 5 — Pedro Ramos: already over required hours (BR-10)
@@ -477,17 +480,18 @@ class FullFeatureTestSeeder extends Seeder
             'start_date' => $pedro->ojt_start_date, 'end_date' => null,
         ]);
         // 5 approved 8-hour days = 40 hours, meeting/exceeding the 40 required.
+        // Each day is 2 itemized entries (4h + 4h) — totals must stay exact.
         for ($d = 1; $d <= 5; $d++) {
             $reportDate = $cycleB1->coverage_start_date->copy()->addDays($d);
-            $dar = DailyAccomplishmentReport::create([
+            DailyAccomplishmentReport::create([
                 'student_id' => $pedro->id, 'cycle_id' => $cycleB1->id, 'report_date' => $reportDate->toDateString(),
-                'activities_text' => 'IT support tasks, day ' . $d . '.',
-                'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+                'activities' => [
+                    ['activity' => 'IT support tasks, day ' . $d . ' (morning).', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                    ['activity' => 'IT support tasks, day ' . $d . ' (afternoon).', 'time_started' => '13:00', 'time_ended' => '17:00'],
+                ],
                 'remarks_student' => null, 'status' => 'Approved',
                 'coordinator_comment' => null, 'reviewed_by' => $coord1User->id, 'reviewed_at' => $cycleB1->deadline_date,
             ]);
-            $dar->hours_rendered = $dar->calculateHoursRendered();
-            $dar->save();
         }
         $hoursRecalc->recalculate($pedro); // should flip ojt_status to Completed
         $auditLogger->log($coord1User, 'Approve', "Approved Pedro Ramos's DAR submissions, pushing him over required hours (seed data).");
@@ -548,16 +552,16 @@ class FullFeatureTestSeeder extends Seeder
             'coverage_start_date' => $monthM1->copy(), 'coverage_end_date' => $monthM1->copy()->addDays(14),
             'deadline_date' => $monthM1->copy()->addDays(15),
         ]);
-        $rosaDar = DailyAccomplishmentReport::create([
+        DailyAccomplishmentReport::create([
             'student_id' => $rosa->id, 'cycle_id' => $coord2Cycle->id,
             'report_date' => $coord2Cycle->coverage_start_date->copy()->addDay()->toDateString(),
-            'activities_text' => 'Site inspection and measurements.',
-            'time_started' => '08:00:00', 'time_ended' => '17:00:00',
+            'activities' => [
+                ['activity' => 'Site inspection walkthrough.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ['activity' => 'Structural measurements and photo log.', 'time_started' => '13:00', 'time_ended' => '17:00'],
+            ],
             'remarks_student' => null, 'status' => 'Approved',
             'coordinator_comment' => null, 'reviewed_by' => $coord2User->id, 'reviewed_at' => $coord2Cycle->deadline_date,
         ]);
-        $rosaDar->hours_rendered = $rosaDar->calculateHoursRendered();
-        $rosaDar->save();
         $hoursRecalc->recalculate($rosa);
         $auditLogger->log($coord2User, 'AccountChange', 'Coordinator account created (seed data).');
 

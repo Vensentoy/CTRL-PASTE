@@ -29,6 +29,13 @@ class WeeklyAccomplishmentReport extends Model
     {
         return [
             'month_period' => 'date',
+            // week{n}_activities are JSON arrays of plain activity-line
+            // strings (multi-activity itemization) — one list per week,
+            // no per-line times (WAR carries one shared week range).
+            'week1_activities' => 'array',
+            'week2_activities' => 'array',
+            'week3_activities' => 'array',
+            'week4_activities' => 'array',
             'week1_hours' => 'decimal:2',
             'week2_hours' => 'decimal:2',
             'week3_hours' => 'decimal:2',

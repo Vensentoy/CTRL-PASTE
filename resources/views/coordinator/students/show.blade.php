@@ -19,7 +19,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -60,16 +60,18 @@
             $completionPct = $requiredHours > 0 ? round(($completedHours / $requiredHours) * 100, 1) : 0.0;
         @endphp
         <div class="border rounded-md p-4">
-            <div class="flex justify-between items-start mb-3">
+            <div class="flex flex-wrap justify-between items-start gap-x-3 gap-y-2 mb-3">
                 <p class="text-xs text-gray-500 uppercase tracking-wide">OJT Progress Report</p>
-                <span class="flex gap-3">
+                <span class="flex flex-wrap gap-x-3 gap-y-1">
                     <a href="{{ route('coordinator.reports.student-record', $student) }}"
-                       class="text-xs text-blue-600 hover:underline">Student Record Report</a>
+                       class="text-xs text-blue-600 hover:underline py-1">Student Record Report</a>
                     <a href="{{ route('coordinator.reports.progress.pdf.student', $student) }}"
-                       class="text-xs text-blue-600 hover:underline">Download PDF</a>
+                       class="text-xs text-blue-600 hover:underline py-1">Download PDF</a>
+                    <a href="{{ route('reports.bundle', $student) }}"
+                       class="text-xs text-blue-600 hover:underline py-1">Download all reports (ZIP)</a>
                 </span>
             </div>
-            <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="text-xs text-gray-500 uppercase tracking-wide">Student ID</p>
                     <p>{{ $student->student_id_number }}</p>
@@ -225,10 +227,10 @@
                     history and hours are untouched &mdash; only the current assignment link changes.
                     You'll lose access to this student's page once the reassignment is saved.
                 </p>
-                <form method="POST" action="{{ route('coordinator.students.reassign', $student) }}" class="flex items-center gap-3">
+                <form method="POST" action="{{ route('coordinator.students.reassign', $student) }}" class="flex flex-col sm:flex-row sm:items-center gap-3">
                     @csrf
                     @method('PATCH')
-                    <select name="coordinator_id" required class="rounded-md border-gray-300 text-sm">
+                    <select name="coordinator_id" required class="rounded-md border-gray-300 text-sm w-full sm:w-auto min-w-0">
                         <option value="">Select a coordinator&hellip;</option>
                         @foreach ($coordinators as $coordinator)
                             <option value="{{ $coordinator->id }}" @selected($coordinator->id === $student->coordinator_id)>
@@ -236,7 +238,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md">
+                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md text-center">
                         Reassign
                     </button>
                 </form>

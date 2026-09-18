@@ -29,7 +29,12 @@ class UpdateWarWeekRequest extends FormRequest
     {
         return [
             'week' => ['required', 'integer', 'between:1,4'],
-            'activities' => ['required', 'string'],
+            // Multi-line itemization: one plain-text line per activity
+            // performed that week (no per-line times — WAR carries one
+            // shared week range). Deliberately no max count, matching the
+            // old unbounded blob; only DAR dates are capped at 20.
+            'activities' => ['required', 'array', 'min:1'],
+            'activities.*' => ['required', 'string'],
             // Direct numeric input — data-model.md gives WAR no
             // time_started/time_ended fields the way DAR has, so unlike
             // hours_rendered (BR-3) there is no server-side derivation

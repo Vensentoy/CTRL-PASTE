@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Services\ReportBundleBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -13,35 +14,30 @@ use Illuminate\Support\Carbon;
  * ownership rule as DarPdfController/WarPdfController. Generates per
  * student+month, same as WarPdfController, since a MAR row already IS
  * one month's whole document.
+ *
+ * Data assembly lives in ReportBundleBuilder::marMonthDocument() (shared
+ * with the full-set ZIP) — this method keeps only HTTP concerns
+ * (student scoping, authorization, streaming the response). Note: this
+ * is the first refactor ever to move MAR's assembly (MAR has been
+ * frozen all project) — zero-behavior-change proven by normalized
+ * byte-diff against storage/app/sample-pdfs/baseline-mar.pdf.
  */
 class MarPdfController extends Controller
 {
-    public function forMonth(int $student, string $month): Response
+    public function forMonth(int $student, string $month, ReportBundleBuilder $bundle): Response
     {
         $student = Student::findOrFail($student);
 
         $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
 
-        $mar = $student->monthlyAccomplishmentReports()
-            ->whereDate('month_period', $monthStart)
-            ->firstOrFail();
+        $doc = $bundle->marMonthDocument($student, $monthStart);
 
-        // Printing a still-Draft (never submitted) MAR isn't meaningful —
-        // mirrors DarPdfController/WarPdfController's status filtering.
-        abort_if($mar->status === 'Draft', 404, 'This MAR has not been submitted yet.');
+        $this->authorize('generatePdf', $doc['authorizable']);
 
-        $this->authorize('generatePdf', $mar);
+        $pdf = Pdf::loadView($doc['view'], $doc['data'])
+            // Folio 8.5×13" (612×936pt) — matches OJT-MONTHLY.docx pgSz.
+            ->setPaper($doc['paper'][0], $doc['paper'][1]);
 
-        $activeCompany = $student->activeCompanyAssignment();
-
-        $pdf = Pdf::loadView('pdf.mar', [
-            'student' => $student,
-            'company' => $activeCompany,
-            'mar' => $mar,
-        ])->setPaper('a4', 'portrait');
-
-        $filename = "MAR-{$student->student_id_number}-{$mar->month_period->format('F-Y')}.pdf";
-
-        return $pdf->stream($filename);
+        return $pdf->stream($doc['filename']);
     }
 }

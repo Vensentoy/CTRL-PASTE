@@ -9,9 +9,11 @@ use App\Models\Student;
 use App\Models\DailyAccomplishmentReport;
 use App\Models\WeeklyAccomplishmentReport;
 use App\Models\MonthlyAccomplishmentReport;
+use App\Models\OjtInformationSheet;
 use App\Policies\WarPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\MarPolicy;
+use App\Policies\InformationSheetPolicy;
 class AppServiceProvider extends ServiceProvider
 {   
     
@@ -33,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DailyAccomplishmentReport::class, DarPolicy::class);
         Gate::policy(WeeklyAccomplishmentReport::class, WarPolicy::class);
         Gate::policy(MonthlyAccomplishmentReport::class, MarPolicy::class);
+        Gate::policy(OjtInformationSheet::class, InformationSheetPolicy::class);
     }
 }

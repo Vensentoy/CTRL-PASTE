@@ -88,11 +88,11 @@ class MarWorkflowTest extends WorkflowTestCase
         $this->assertDatabaseHas('audit_logs', ['action_type' => 'Submit']);
     }
 
-    public function test_coordinator_can_approve_the_mar_and_hours_are_added(): void
+    public function test_coordinator_approving_the_mar_does_not_double_count_war_hours(): void
     {
         $coordinator = $this->makeCoordinator();
         $student = $this->makeStudent($coordinator, 'student.mar', ['required_hours' => 40]);
-        $this->makeWarRow($student->id); // 34h
+        $this->makeWarRow($student->id); // 34h, but all four weeks still Draft
         $cycle = $this->makeCycle($coordinator);
 
         $this->actingAs($student->user)->get(route('student.mar.show'));
@@ -107,7 +107,12 @@ class MarWorkflowTest extends WorkflowTestCase
             ->assertRedirect(route('coordinator.mar.review', $cycle));
 
         $this->assertSame('Approved', $mar->fresh()->status);
-        $this->assertEquals(34, (float) $student->fresh()->completed_hours);
+        // BR-2/BR-10: MAR's monthly_total_hours is 100% derived from that
+        // month's WAR week hours (MarController::monthlyHoursFromWar()), so
+        // approving the MAR alone must not add independent hours —
+        // completion weight arrives only via Approved WAR weeks.
+        $this->assertEquals(34, (float) $mar->fresh()->monthly_total_hours);
+        $this->assertEquals(0, (float) $student->fresh()->completed_hours);
 
         $this->assertDatabaseHas('audit_logs', ['action_type' => 'Approve']);
     }

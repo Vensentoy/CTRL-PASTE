@@ -12,9 +12,9 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <p class="text-sm text-gray-500">
                 {{ $coordinator->full_name }}'s students &mdash; required/completed/remaining hours and completion status.
             </p>

@@ -9,9 +9,9 @@ use Illuminate\Validation\Validator;
  * Creates a DAR Draft (workflows.md §2 — Daily Logging).
  *
  * - hours_rendered is deliberately absent from the rule set — it is
- *   never accepted as input (BR-3). The controller computes it via
- *   DailyAccomplishmentReport::calculateHoursRendered() after this
- *   request validates.
+ *   never accepted as input (BR-3). The model's setActivitiesAttribute()
+ *   mutator recomputes it from the `activities` array server-side after
+ *   this request validates.
  * - report_date bounds (BR-4: not future, not before ojt_start_date,
  *   not after ojt_completion_date) can't be expressed as static Laravel
  *   rules since two of the three bounds depend on the logged-in
@@ -32,9 +32,14 @@ class StoreDarRequest extends FormRequest
     {
         return [
             'report_date' => ['required', 'date'],
-            'activities_text' => ['required', 'string', 'max:5000'],
-            'time_started' => ['required', 'date_format:H:i'],
-            'time_ended' => ['required', 'date_format:H:i', 'after:time_started'],
+            // Multi-activity itemization: 1–20 entries per date (the max:20
+            // cap keeps one date's list bounded; a per-item failure keys
+            // as activities.{i}.{field}, the cap failure keys as
+            // `activities` itself).
+            'activities' => ['required', 'array', 'min:1', 'max:20'],
+            'activities.*.activity' => ['required', 'string', 'max:1000'],
+            'activities.*.time_started' => ['required', 'date_format:H:i'],
+            'activities.*.time_ended' => ['required', 'date_format:H:i', 'after:activities.*.time_started'],
             'remarks_student' => ['nullable', 'string', 'max:2000'],
         ];
     }

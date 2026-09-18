@@ -11,7 +11,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -22,7 +22,7 @@
         <div class="border rounded-md divide-y">
             @forelse ($students as $student)
                 <a href="{{ route('coordinator.students.show', $student) }}"
-                   class="p-4 text-sm flex justify-between items-center hover:bg-gray-50">
+                   class="p-4 text-sm flex flex-wrap justify-between items-center hover:bg-gray-50 gap-x-3 gap-y-1">
                     <div>
                         <p class="font-medium">{{ $student->fullName() }}</p>
                         <p class="text-xs text-gray-500">{{ $student->student_id_number }} &middot; {{ $student->course }}</p>

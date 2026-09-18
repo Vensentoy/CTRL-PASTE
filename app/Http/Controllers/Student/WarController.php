@@ -32,9 +32,24 @@ class WarController extends Controller
         $student = request()->user()->student;
         $monthStart = now()->startOfMonth()->toDateString();
 
-        $war = WeeklyAccomplishmentReport::firstOrCreate(
-            ['student_id' => $student->id, 'month_period' => $monthStart],
-        );
+        // whereDate, not firstOrCreate's exact match: Eloquent's date
+        // cast serializes month_period back as 'Y-m-d H:i:s' on save,
+        // so a later exact-match lookup for 'Y-m-d' misses on drivers
+        // without DATE coercion (sqlite) and firstOrCreate would try a
+        // duplicate INSERT -> unique violation. Same portability reason
+        // as the whereDate lookups in WarPdfController/CohortAggregator.
+        // (MarController::show still uses firstOrCreate — same latent
+        // twin, left untouched per this session's MAR-freeze.)
+        $war = WeeklyAccomplishmentReport::where('student_id', $student->id)
+            ->whereDate('month_period', $monthStart)
+            ->first();
+
+        if (! $war) {
+            $war = WeeklyAccomplishmentReport::create([
+                'student_id' => $student->id,
+                'month_period' => $monthStart,
+            ]);
+        }
 
         // Open cycles under this student's own coordinator (BR-11), for
         // the "submit this week-pair into..." dropdowns.

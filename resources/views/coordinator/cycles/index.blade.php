@@ -13,7 +13,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -28,25 +28,25 @@
 
         <div class="border rounded-md divide-y">
             @forelse ($cycles as $cycle)
-                <div class="p-4 text-sm flex justify-between items-center">
-                    <div>
-                        <p class="font-medium">{{ $cycle->cycle_name }}</p>
+                <div class="p-4 text-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div class="min-w-0">
+                        <p class="font-medium break-words">{{ $cycle->cycle_name }}</p>
                         <p class="text-xs text-gray-500">
                             Coverage {{ $cycle->coverage_start_date->toFormattedDateString() }}
                             – {{ $cycle->coverage_end_date->toFormattedDateString() }}
                             · Deadline {{ $cycle->deadline_date->toFormattedDateString() }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <span class="text-xs text-gray-500">{{ $cycle->daily_accomplishment_reports_count }} DAR(s)</span>
                         <a href="{{ route('coordinator.dar.review', $cycle) }}"
-                           class="text-blue-600 hover:underline text-xs">DAR Review</a>
+                           class="text-blue-600 hover:underline text-xs py-1">DAR Review</a>
                         <a href="{{ route('coordinator.war.review', $cycle) }}"
-                           class="text-blue-600 hover:underline text-xs">WAR Review</a>
+                           class="text-blue-600 hover:underline text-xs py-1">WAR Review</a>
                         <a href="{{ route('coordinator.mar.review', $cycle) }}"
-                           class="text-blue-600 hover:underline text-xs">MAR Review</a>
+                           class="text-blue-600 hover:underline text-xs py-1">MAR Review</a>
                         <a href="{{ route('coordinator.reports.monitoring', $cycle) }}"
-                           class="text-blue-600 hover:underline text-xs">Monitoring Report</a>
+                           class="text-blue-600 hover:underline text-xs py-1">Monitoring Report</a>
                     </div>
                 </div>
             @empty

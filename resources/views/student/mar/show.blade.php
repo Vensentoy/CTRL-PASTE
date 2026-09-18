@@ -6,18 +6,18 @@
 --}}
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <div class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center">
+            <h2 class="font-semibold text-lg sm:text-xl text-gray-800 leading-tight">
                 Monthly Accomplishment Report &mdash; {{ $mar->month_period->format('F Y') }}
             </h2>
             @if ($mar->status !== 'Draft')
                 <a href="{{ route('mar.pdf', ['student' => $mar->student_id, 'month' => $mar->month_period->format('Y-m')]) }}"
-                   target="_blank" class="text-xs text-blue-600 hover:underline">Print / PDF</a>
+                   target="_blank" class="text-xs text-blue-600 hover:underline py-1 shrink-0">Print / PDF</a>
             @endif
         </div>
     </x-slot>
 
-    <div class="py-8 max-w-2xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -91,10 +91,10 @@
                 @if ($openCycles->isEmpty())
                     <p class="text-sm text-amber-600">Your coordinator hasn't opened a submission cycle yet &mdash; the MAR can't be submitted until one exists (BR-5).</p>
                 @else
-                    <form method="POST" action="{{ route('student.mar.submit', $mar) }}" class="flex items-center gap-3">
+                    <form method="POST" action="{{ route('student.mar.submit', $mar) }}" class="flex flex-col sm:flex-row sm:items-center gap-3">
                         @csrf
-                        <label for="cycle_id" class="text-sm font-medium">Submit this month's MAR into:</label>
-                        <select name="cycle_id" id="cycle_id" required class="rounded-md border-gray-300 text-sm">
+                        <label for="cycle_id" class="text-sm font-medium shrink-0">Submit this month's MAR into:</label>
+                        <select name="cycle_id" id="cycle_id" required class="rounded-md border-gray-300 text-sm w-full sm:w-auto min-w-0">
                             <option value="">Select a cycle&hellip;</option>
                             @foreach ($openCycles as $cycle)
                                 <option value="{{ $cycle->id }}">
@@ -103,7 +103,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md text-center">
                             Submit
                         </button>
                     </form>

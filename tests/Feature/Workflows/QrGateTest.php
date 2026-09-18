@@ -18,10 +18,13 @@ class QrGateTest extends WorkflowTestCase
         config(['qr.bypass_in_testing' => false]);
     }
 
-    public function test_direct_login_without_qr_is_blocked(): void
+    public function test_login_form_renders_without_qr_but_student_post_is_blocked(): void
     {
-        $this->get('/login')->assertStatus(403)->assertSee('Scan the QR');
-        $this->post('/login', ['username' => 'x', 'password' => 'y'])->assertStatus(403);
+        // Regression: hiding the form on GET deadlocked coordinators out of
+        // the login they need to generate the first QR. The form always
+        // renders (with a QR notice); enforcement lives on POST.
+        $this->get('/login')->assertOk()->assertSee('Username')->assertSee('QR scan');
+        $this->post('/login', ['username' => 'x', 'password' => 'y'])->assertStatus(403)->assertSee('Scan the QR');
     }
 
     public function test_qr_enter_with_valid_token_sets_session_and_unblocks_login(): void
@@ -56,6 +59,44 @@ class QrGateTest extends WorkflowTestCase
         $signed = URL::temporarySignedRoute('qr.enter', now()->addMinutes(2), ['token' => $plain]);
 
         $this->get($signed)->assertStatus(410)->assertSee('expired');
+    }
+
+    public function test_expired_page_shows_back_to_login_for_guests(): void
+    {
+        $plain = Str::random(64);
+        QrAccessToken::create([
+            'token_hash' => hash('sha256', $plain),
+            'expires_at' => now()->subMinute(),
+            'max_uses' => 1,
+            'used_count' => 0,
+        ]);
+        $signed = URL::temporarySignedRoute('qr.enter', now()->addMinutes(2), ['token' => $plain]);
+
+        $this->get($signed)
+            ->assertStatus(410)
+            ->assertSee('Back to login')
+            ->assertDontSee('still logged in as');
+    }
+
+    public function test_expired_page_tells_logged_in_users_nothing_changed(): void
+    {
+        $coordinator = $this->makeCoordinator('coord.expired', 'Expired Coord');
+        $plain = Str::random(64);
+        QrAccessToken::create([
+            'token_hash' => hash('sha256', $plain),
+            'expires_at' => now()->subMinute(),
+            'max_uses' => 1,
+            'used_count' => 0,
+        ]);
+        $signed = URL::temporarySignedRoute('qr.enter', now()->addMinutes(2), ['token' => $plain]);
+
+        $this->actingAs($coordinator->user)
+            ->get($signed)
+            ->assertStatus(410)
+            ->assertSee('still logged in as')
+            ->assertSee('coord.expired')
+            ->assertSee('Continue to dashboard')
+            ->assertDontSee('Back to login');
     }
 
     public function test_single_use_token_second_scan_is_gone(): void
@@ -152,6 +193,22 @@ class QrGateTest extends WorkflowTestCase
             'password' => 'password',
         ])->assertStatus(403);
         $this->assertGuest();
+    }
+
+    public function test_qr_generates_with_no_host_override_configured(): void
+    {
+        // Roaming setup: no QR_HOST pin — generation must still succeed and
+        // produce a signed entry URL (host falls back to request/detection).
+        config(['qr.bypass_in_testing' => true]);
+        config(['qr.host' => null]);
+        $coordinator = $this->makeCoordinator('coord.nohost', 'No Host Coord');
+        $response = $this->actingAs($coordinator->user)
+            ->post(route('coordinator.qr.generate'))
+            ->assertOk()
+            ->assertJsonStructure(['qr_data_url', 'signed_url', 'expires_at', 'ttl_seconds']);
+
+        $this->assertStringContainsString('/qr/enter', $response->json('signed_url'));
+        $this->assertDatabaseCount('qr_access_tokens', 1);
     }
 
     public function test_generated_qr_signature_validates_on_lan_host(): void

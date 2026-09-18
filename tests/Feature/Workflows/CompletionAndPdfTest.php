@@ -4,8 +4,13 @@ namespace Tests\Feature\Workflows;
 
 use App\Models\CompanyAssignment;
 use App\Models\MonthlyAccomplishmentReport;
+use App\Models\OjtInformationSheet;
 use App\Models\WeeklyAccomplishmentReport;
 use App\Services\CompletedHoursRecalculator;
+use App\Services\DarPdfGrouper;
+use App\Services\ReportBundleBuilder;
+use Barryvdh\DomPDF\Facade\Pdf;
+use ZipArchive;
 
 /**
  * workflows.md §5 (completion, finalize/archive) + §6 (official-format
@@ -23,8 +28,9 @@ class CompletionAndPdfTest extends WorkflowTestCase
         foreach ([['08:00', '12:30'], ['08:00', '12:30']] as [$start, $end]) {
             $dar = $this->makeDar($student, [
                 'report_date' => now()->toDateString(),
-                'time_started' => $start,
-                'time_ended' => $end,
+                'activities' => [
+                    ['activity' => 'Completion drive work.', 'time_started' => $start, 'time_ended' => $end],
+                ],
             ]);
             $this->actingAs($student->user)->post(route('student.dar.submit'), [
                 'cycle_id' => $cycle->id,
@@ -54,9 +60,9 @@ class CompletionAndPdfTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Blocked.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Blocked.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertSessionHasErrors('report_date');
 
@@ -73,13 +79,69 @@ class CompletionAndPdfTest extends WorkflowTestCase
         $this->actingAs(\App\Models\User::find($student->user_id))
             ->post(route('student.dar.store'), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Unblocked after reopen.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Unblocked after reopen.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertRedirect(route('student.dar.index'));
 
         $this->assertSame(3, $student->fresh()->dailyAccomplishmentReports()->count());
+    }
+
+    public function test_overlapping_war_and_mar_approvals_count_hours_once(): void
+    {
+        // BR-2/BR-10: MAR's monthly_total_hours is derived from that same
+        // month's WAR week1..week4 hours, so approving both the WAR weeks
+        // and that month's MAR must count the hours once, not twice.
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.overlap', ['required_hours' => 40]);
+        $cycle1 = $this->makeCycle($coordinator, ['cycle_name' => 'Cycle One']);
+        $cycle2 = $this->makeCycle($coordinator, ['cycle_name' => 'Cycle Two']);
+
+        WeeklyAccomplishmentReport::create([
+            'student_id' => $student->id,
+            'month_period' => now()->startOfMonth()->toDateString(),
+            'week1_hours' => 8,
+            'week2_hours' => 9,
+            'week3_hours' => 7,
+            'week4_hours' => 10,
+        ]);
+        $war = WeeklyAccomplishmentReport::where('student_id', $student->id)->first();
+
+        // Submit + approve all four weeks (pair 1-2 into cycle1, 3-4 into cycle2).
+        $this->actingAs($student->user)->post(route('student.war.submit', $war), ['cycle_id' => $cycle1->id]);
+        $this->actingAs($student->user)->post(route('student.war.submit', $war), ['cycle_id' => $cycle2->id]);
+
+        foreach ([1, 2, 3, 4] as $week) {
+            $this->actingAs($coordinator->user)
+                ->patch(route('coordinator.war.review.act', $war), [
+                    'week' => $week,
+                    'decision' => 'approve',
+                    'coordinator_comment' => 'Good work.',
+                ]);
+        }
+
+        $this->assertEquals(34, (float) $student->fresh()->completed_hours);
+
+        // Now submit + approve the SAME month's MAR (derived total = 34).
+        $this->actingAs($student->user)->get(route('student.mar.show'));
+        $mar = MonthlyAccomplishmentReport::where('student_id', $student->id)->first();
+        $this->actingAs($student->user)->patch(route('student.mar.update', $mar), [
+            'activities_text' => 'Monthly rollup of the same four weeks.',
+        ]);
+        $this->actingAs($student->user)->post(route('student.mar.submit', $mar), ['cycle_id' => $cycle1->id]);
+        $this->assertEquals(34, (float) $mar->fresh()->monthly_total_hours);
+
+        $this->actingAs($coordinator->user)
+            ->patch(route('coordinator.mar.review.act', $mar), [
+                'decision' => 'approve',
+                'coordinator_comment' => 'Approved.',
+            ]);
+
+        // Hours counted once (34), not twice (68) — and still Ongoing
+        // against the 40h requirement, not prematurely Completed.
+        $this->assertEquals(34, (float) $student->fresh()->completed_hours);
+        $this->assertSame('Ongoing', $student->fresh()->ojt_status);
     }
 
     public function test_archive_is_terminal_and_only_for_completed_records(): void
@@ -169,6 +231,40 @@ class CompletionAndPdfTest extends WorkflowTestCase
             ->assertForbidden();
     }
 
+    public function test_info_sheet_pdf_streams_and_scopes_by_ownership(): void
+    {
+        // pdf-forms.md §1 — the one-time OJT Information Sheet prints like
+        // DAR/WAR/MAR: owning student + owning coordinator may print it,
+        // anyone else is denied (BR-11/BR-14).
+        $coordA = $this->makeCoordinator('coord.a', 'Coordinator A');
+        $coordB = $this->makeCoordinator('coord.b', 'Coordinator B');
+        $student = $this->makeStudent($coordA, 'student.infosheet');
+
+        OjtInformationSheet::create([
+            'student_id' => $student->id,
+            'city_address' => '123 Legaspi St',
+            'gender' => 'Female',
+            'contact_number' => '09171234567',
+            'email' => 'jane.doe@example.com',
+            'birth_date' => '2005-01-15',
+            'birth_place' => 'Naga City',
+            'signed_date' => now()->toDateString(),
+        ]);
+
+        $url = route('info-sheet.pdf', $student->id);
+
+        // Owning student can print their own sheet.
+        $response = $this->actingAs($student->user)->get($url);
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('Content-Type'));
+
+        // Owning coordinator can print it for filing.
+        $this->actingAs($coordA->user)->get($url)->assertOk();
+
+        // Non-owning coordinator is denied.
+        $this->actingAs($coordB->user)->get($url)->assertForbidden();
+    }
+
     public function test_war_and_mar_pdfs_stream(): void
     {
         $coordinator = $this->makeCoordinator();
@@ -186,7 +282,7 @@ class CompletionAndPdfTest extends WorkflowTestCase
         $war = WeeklyAccomplishmentReport::where('student_id', $student->id)->first();
         $this->actingAs($student->user)->patch(route('student.war.week.update', $war), [
             'week' => 1,
-            'activities' => 'Pdf week.',
+            'activities' => ['Pdf week line one.', 'Pdf week line two.'],
             'hours' => 8,
         ]);
         $this->actingAs($student->user)->post(route('student.war.submit', $war), ['cycle_id' => $cycle->id]);
@@ -207,5 +303,226 @@ class CompletionAndPdfTest extends WorkflowTestCase
             ->get(route('mar.pdf', ['student' => $student->id, 'month' => $month]));
         $marPdf->assertOk();
         $this->assertStringContainsString('application/pdf', (string) $marPdf->headers->get('Content-Type'));
+    }
+
+    public function test_dar_pdf_at_item_cap_batches_cleanly(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.pdfcap');
+        $cycle = $this->makeCycle($coordinator);
+
+        // Lester-shaped date: 4 entries, 9h total.
+        $lesterDar = $this->makeDar($student, [
+            'report_date' => now()->subDay()->toDateString(),
+            'activities' => $this->lesterDayActivities(),
+            'remarks_student' => 'COMPLETED',
+        ]);
+        $this->assertEquals(9.0, (float) $lesterDar->hours_rendered);
+
+        // Cap-scale date: exactly 20 entries x 30min = 10h.
+        $capEntries = [];
+        for ($i = 1; $i <= 20; $i++) {
+            $capEntries[] = ['activity' => "Cap task {$i}.", 'time_started' => '08:00', 'time_ended' => '08:30'];
+        }
+        $capDar = $this->makeDar($student, [
+            'report_date' => now()->toDateString(),
+            'activities' => $capEntries,
+            'remarks_student' => 'COMPLETED',
+        ]);
+        $this->assertEquals(10.0, (float) $capDar->hours_rendered);
+
+        // Four more single-entry dates (4h each) to push past the
+        // 5-dates-per-printout batch boundary: 6 dates -> 2 batches.
+        $extraIds = [];
+        for ($d = 2; $d <= 5; $d++) {
+            $extraIds[] = $this->makeDar($student, [
+                'report_date' => now()->subDays($d)->toDateString(),
+            ])->id;
+        }
+
+        $this->actingAs($student->user)->post(route('student.dar.submit'), [
+            'cycle_id' => $cycle->id,
+            'dar_ids' => array_merge([$lesterDar->id, $capDar->id], $extraIds),
+        ]);
+
+        // HTTP route streams a real PDF across the two printout pages.
+        $response = $this->actingAs($student->user)
+            ->get(route('dar.pdf', ['cycle' => $cycle->id, 'student' => $student->id]));
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('Content-Type'));
+
+        $dars = $student->dailyAccomplishmentReports()
+            ->where('cycle_id', $cycle->id)
+            ->orderBy('report_date')
+            ->get();
+
+        // Batching: dates are never split — 6 dates become 5+1, and each
+        // batch total sums the STORED multi-entry hours.
+        $grouper = new DarPdfGrouper();
+        $batches = $grouper->batch($dars);
+
+        $this->assertCount(2, $batches);
+        $this->assertCount(5, $batches->first());
+        $this->assertCount(1, $batches->last());
+        // Ascending by date: the four 4h extras + the 9h Lester date fill
+        // batch one, the 10h cap date stands alone in batch two.
+        $this->assertEquals(4 * 4.0 + 9.0, $grouper->batchTotalHours($batches->first()));
+        $this->assertEquals(10.0, $grouper->batchTotalHours($batches->last()));
+
+        // Blade structure on the exact view data the PDF uses: merged
+        // cells span each date's entries; per-date subtotals match.
+        $viewData = [
+            'student' => $student,
+            'company' => null,
+            'cycle' => $cycle,
+            'batches' => $batches,
+            'grouper' => $grouper,
+        ];
+        $html = view('pdf.dar', $viewData)->render();
+
+        $this->assertStringContainsString('rowspan="4"', $html);
+        $this->assertStringContainsString('rowspan="20"', $html);
+        $this->assertStringContainsString('Cap task 20.', $html);
+        $this->assertStringContainsString('COMPLETED', $html);
+        $this->assertStringContainsString('9.00', $html);
+        $this->assertStringContainsString('10.00', $html);
+
+        // DomPDF renders the cap-scale table without exception and emits
+        // a real PDF document. Whether a 20-row table flows gracefully
+        // across the page stays a manual visual check against the Lester
+        // reference — bytes can't assert "not awkward".
+        $pdfBytes = Pdf::loadView('pdf.dar', $viewData)
+            ->setPaper([0, 0, 612, 936], 'portrait')
+            ->output();
+
+        $this->assertNotEmpty($pdfBytes);
+        $this->assertSame('%PDF', substr($pdfBytes, 0, 4));
+    }
+
+    private function makeBundlableStudent($coordinator, string $username): array
+    {
+        $student = $this->makeStudent($coordinator, $username);
+        $cycle = $this->makeCycle($coordinator);
+        $month = now()->startOfMonth()->toDateString();
+
+        // Submitted multi-entry DAR in the cycle.
+        $this->makeDar($student, [
+            'report_date' => now()->toDateString(),
+            'cycle_id' => $cycle->id,
+            'status' => 'Pending',
+            'activities' => [
+                ['activity' => 'Bundle task one.', 'time_started' => '08:00', 'time_ended' => '10:00'],
+                ['activity' => 'Bundle task two.', 'time_started' => '10:00', 'time_ended' => '12:00'],
+            ],
+        ]);
+
+        // Submitted WAR week in the same month.
+        WeeklyAccomplishmentReport::create([
+            'student_id' => $student->id, 'month_period' => $month,
+            'week1_activities' => ['Bundle week line one.', 'Bundle week line two.'],
+            'week1_hours' => 8, 'week1_status' => 'Pending', 'week1_comment' => null,
+            'cycle1_id' => $cycle->id,
+        ]);
+
+        // Submitted MAR for the same month.
+        MonthlyAccomplishmentReport::create([
+            'student_id' => $student->id, 'month_period' => $month,
+            'activities_text' => 'Bundle month summary.',
+            'monthly_total_hours' => 8, 'status' => 'Pending', 'cycle_id' => $cycle->id,
+        ]);
+
+        return [$student, $cycle];
+    }
+
+    public function test_report_bundle_downloads_zip_for_own_student(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        [$student, $cycle] = $this->makeBundlableStudent($coordinator, 'student.bundle');
+
+        $response = $this->actingAs($student->user)
+            ->get(route('reports.bundle', $student));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/zip', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString(
+            "Reports-{$student->student_id_number}.zip",
+            (string) $response->headers->get('Content-Disposition')
+        );
+
+        // Owning coordinator gets the same bundle.
+        $this->actingAs($coordinator->user)
+            ->get(route('reports.bundle', $student))
+            ->assertOk();
+    }
+
+    public function test_report_bundle_contains_one_member_per_submitted_document(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        [$student] = $this->makeBundlableStudent($coordinator, 'student.bundlezip');
+
+        // Builder-level: open the real ZIP and pin its members. Done
+        // directly (not via the download response) so the test never
+        // depends on BinaryFileResponse deletion timing.
+        $builder = new ReportBundleBuilder(new DarPdfGrouper());
+        $zipPath = $builder->build($student);
+
+        try {
+            $zip = new ZipArchive();
+            $this->assertSame(true, $zip->open($zipPath));
+
+            $names = [];
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $stat = $zip->statIndex($i);
+                $names[] = $stat['name'];
+                // Every member is a real, non-empty PDF.
+                $this->assertGreaterThan(0, $stat['size']);
+                $this->assertStringEndsWith('.pdf', $stat['name']);
+            }
+            $zip->close();
+
+            $this->assertCount(3, $names);
+            $this->assertCount(1, preg_grep('/^DAR-/', $names));
+            $this->assertCount(1, preg_grep('/^WAR-/', $names));
+            $this->assertCount(1, preg_grep('/^MAR-/', $names));
+        } finally {
+            @unlink($zipPath);
+        }
+
+        // Incremental-build hygiene: per-document temp files are removed
+        // at close() — only finished bundles may remain in the tmp dir.
+        $leftovers = glob(storage_path('app/tmp/bundles/doc*')) ?: [];
+        $this->assertSame([], $leftovers);
+    }
+
+    public function test_report_bundle_is_denied_for_non_owners(): void
+    {
+        $coordA = $this->makeCoordinator('coord.a', 'Coordinator A');
+        $coordB = $this->makeCoordinator('coord.b', 'Coordinator B');
+        [$student] = $this->makeBundlableStudent($coordA, 'student.bundleown');
+        $intruder = $this->makeStudent($coordA, 'student.intruder');
+
+        // Non-owning coordinator is denied (BR-11/BR-14).
+        $this->actingAs($coordB->user)
+            ->get(route('reports.bundle', $student))
+            ->assertForbidden();
+
+        // Another student is denied, even under the same coordinator.
+        $this->actingAs($intruder->user)
+            ->get(route('reports.bundle', $student))
+            ->assertForbidden();
+    }
+
+    public function test_report_bundle_with_nothing_submitted_is_404(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.emptybundle');
+
+        // Draft-only DAR exists but nothing submitted — mirrors the
+        // single-download controllers' empty-case 404.
+        $this->makeDar($student, ['report_date' => now()->toDateString()]);
+
+        $this->actingAs($student->user)
+            ->get(route('reports.bundle', $student))
+            ->assertNotFound();
     }
 }

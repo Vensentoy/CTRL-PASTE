@@ -12,8 +12,10 @@ use App\Http\Controllers\Coordinator\AuditLogController;
 use App\Http\Controllers\Coordinator\WarReviewController;
 use App\Http\Controllers\DarPdfController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InfoSheetPdfController;
 use App\Http\Controllers\MarPdfController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentReportBundleController;
 use App\Http\Controllers\Student\CompanyAssignmentController;
 use App\Http\Controllers\Student\DarController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
@@ -198,6 +200,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('war.pdf');
     Route::get('/mar/pdf/student/{student}/month/{month}', [MarPdfController::class, 'forMonth'])
         ->name('mar.pdf');
+    // Full-set bundle: one ZIP with every submitted DAR/WAR/MAR PDF for
+    // the student (StudentReportBundleController). Either role —
+    // ownership enforced inside via StudentPolicy::viewReports (BR-11/
+    // BR-14), same as the per-report PDF routes above.
+    Route::get('/reports/bundle/student/{student}', [StudentReportBundleController::class, 'download'])
+        ->name('reports.bundle');
+    // OJT Information Sheet: one printout per student, no cycle/month
+    // scope — ownership enforced inside the controller via
+    // InformationSheetPolicy::generatePdf() (BR-11/BR-14).
+    Route::get('/info-sheet/pdf/student/{student}', [InfoSheetPdfController::class, 'show'])
+        ->name('info-sheet.pdf');
 });
 
 require __DIR__.'/auth.php';

@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -25,6 +25,7 @@
             <div id="qr-display" class="hidden mt-4 flex flex-col items-center">
                 <div id="qr-image" class="bg-white p-3 rounded-lg shadow border"></div>
                 <p id="qr-countdown" class="mt-2 text-xs text-gray-600"></p>
+                <p id="qr-host" class="mt-1 text-xs text-gray-500"></p>
                 <p class="text-xs text-gray-400">Single-use — expires in 2 minutes.</p>
             </div>
         </div>
@@ -131,7 +132,7 @@
             @else
                 <div class="divide-y">
                     @foreach ($cyclesNeedingReview as $cycle)
-                        <div class="px-4 py-2 text-sm flex justify-between items-center gap-3">
+                        <div class="px-4 py-2 text-sm flex flex-wrap justify-between items-center gap-x-3 gap-y-1">
                             <span class="truncate">
                                 {{ $cycle->cycle_name }}
                                 @if ($cycle->deadline_date->isPast())
@@ -145,13 +146,13 @@
                             </span>
                             <span class="whitespace-nowrap">
                                 @if ($cycle->pending_dar_count)
-                                    <a href="{{ route('coordinator.dar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs">DAR</a>
+                                    <a href="{{ route('coordinator.dar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs px-1 py-2">DAR</a>
                                 @endif
                                 @if ($cycle->pending_war_count)
-                                    <a href="{{ route('coordinator.war.review', $cycle) }}" class="text-blue-600 hover:underline text-xs">WAR</a>
+                                    <a href="{{ route('coordinator.war.review', $cycle) }}" class="text-blue-600 hover:underline text-xs px-1 py-2">WAR</a>
                                 @endif
                                 @if ($cycle->pending_mar_count)
-                                    <a href="{{ route('coordinator.mar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs">MAR</a>
+                                    <a href="{{ route('coordinator.mar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs px-1 py-2">MAR</a>
                                 @endif
                             </span>
                         </div>
@@ -170,10 +171,10 @@
             @else
                 <div class="divide-y">
                     @foreach ($openCycles as $cycle)
-                        <div class="px-4 py-2 text-sm flex justify-between items-center">
-                            <span>{{ $cycle->cycle_name }}</span>
-                            <span class="text-gray-500">Due {{ $cycle->deadline_date->toFormattedDateString() }}</span>
-                            <a href="{{ route('coordinator.dar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs">Review</a>
+                        <div class="px-4 py-2 text-sm flex flex-wrap justify-between items-center gap-x-3 gap-y-1">
+                            <span class="min-w-0">{{ $cycle->cycle_name }}</span>
+                            <span class="text-gray-500 whitespace-nowrap">Due {{ $cycle->deadline_date->toFormattedDateString() }}</span>
+                            <a href="{{ route('coordinator.dar.review', $cycle) }}" class="text-blue-600 hover:underline text-xs py-1">Review</a>
                         </div>
                     @endforeach
                 </div>
@@ -188,7 +189,7 @@
             <div class="divide-y">
                 @foreach ($students as $student)
                     <a href="{{ route('coordinator.students.show', $student) }}"
-                       class="px-4 py-2 text-sm flex justify-between items-center hover:bg-gray-50 gap-3">
+                       class="px-4 py-2 text-sm flex flex-wrap justify-between items-center hover:bg-gray-50 gap-x-3 gap-y-1">
                         <span class="truncate">{{ $student->fullName() }} <span class="text-gray-400">({{ $student->student_id_number }})</span></span>
                         <span class="text-gray-500 whitespace-nowrap">{{ number_format($student->completed_hours, 1) }}/{{ $student->required_hours }}h</span>
                         <span class="whitespace-nowrap">
@@ -227,7 +228,7 @@
              destinations, not daily-glance data the way the
              tiles/charts above are. THIS SESSION added the Department
              Summary Report link (item 2, blueprint.md §9 closeout). --}}
-        <div class="flex justify-end gap-4">
+        <div class="flex flex-wrap justify-end gap-x-4 gap-y-2">
             <a href="{{ route('coordinator.reports.progress') }}" class="text-xs text-blue-600 hover:underline">
                 Progress Report
             </a>
@@ -279,8 +280,13 @@
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                 }).then(function (r) { return r.json(); }).then(function (data) {
-                    imgWrap.innerHTML = '<img src="' + data.qr_data_url + '" alt="QR code" class="w-[300px] h-[300px]"/>';
+                    imgWrap.innerHTML = '<img src="' + data.qr_data_url + '" alt="QR code" class="w-[300px] max-w-full h-auto"/>';
                     display.classList.remove('hidden');
+                    // Show exactly which host got embedded, so a wrong-adapter
+                    // auto-detect is visible before anyone scans (roaming setup:
+                    // no QR_HOST pin — phones must be on the same Wi-Fi as it).
+                    document.getElementById('qr-host').textContent =
+                        'This QR points to ' + new URL(data.signed_url).host + ' — phones must be on the same Wi-Fi.';
                     // Countdown from server TTL, not wall-clock diff, to avoid clock-skew false Expired.
                     var secs = data.ttl_seconds;
                     if (timer) clearInterval(timer);

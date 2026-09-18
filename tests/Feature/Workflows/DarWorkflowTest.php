@@ -20,9 +20,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Assisted in network setup.',
-                'time_started' => '08:00',
-                'time_ended' => '12:30',
+                'activities' => [
+                    ['activity' => 'Assisted in network setup.', 'time_started' => '08:00', 'time_ended' => '12:30'],
+                ],
             ])
             ->assertRedirect(route('student.dar.index'));
 
@@ -44,9 +44,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->addDay()->toDateString(),
-                'activities_text' => 'Future entry.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Future entry.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertSessionHasErrors('report_date');
     }
@@ -60,9 +60,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->subWeeks(3)->toDateString(),
-                'activities_text' => 'Too early.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Too early.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertSessionHasErrors('report_date');
 
@@ -70,9 +70,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->addMonths(4)->toDateString(),
-                'activities_text' => 'Too late.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Too late.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertSessionHasErrors('report_date');
     }
@@ -85,11 +85,11 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Backwards clock.',
-                'time_started' => '12:00',
-                'time_ended' => '08:00',
+                'activities' => [
+                    ['activity' => 'Backwards clock.', 'time_started' => '12:00', 'time_ended' => '08:00'],
+                ],
             ])
-            ->assertSessionHasErrors('time_ended');
+            ->assertSessionHasErrors('activities.0.time_ended');
     }
 
     public function test_batch_submit_moves_drafts_into_an_open_cycle(): void
@@ -143,8 +143,12 @@ class DarWorkflowTest extends WorkflowTestCase
         $student = $this->makeStudent($coordinator, 'student.dar');
         $cycle = $this->makeCycle($coordinator);
 
-        $submitted = $this->makeDar($student, ['activities_text' => 'SUBMITTED ACTIVITY TEXT']);
-        $draftOnly = $this->makeDar($student, ['activities_text' => 'STILL A DRAFT TEXT']);
+        $submitted = $this->makeDar($student, ['activities' => [
+            ['activity' => 'SUBMITTED ACTIVITY TEXT', 'time_started' => '08:00', 'time_ended' => '12:00'],
+        ]]);
+        $draftOnly = $this->makeDar($student, ['activities' => [
+            ['activity' => 'STILL A DRAFT TEXT', 'time_started' => '08:00', 'time_ended' => '12:00'],
+        ]]);
 
         $this->actingAs($student->user)
             ->post(route('student.dar.submit'), [
@@ -196,9 +200,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($intruder->user)
             ->put(route('student.dar.update', $dar), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Hijacked.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Hijacked.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertForbidden();
     }
@@ -218,9 +222,9 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->put(route('student.dar.update', $dar), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Editing after submit.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Editing after submit.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertForbidden();
     }
@@ -247,8 +251,11 @@ class DarWorkflowTest extends WorkflowTestCase
         $approved = $this->makeDar($student, [
             'report_date' => now()->toDateString(),
             'status' => 'Approved',
-            'time_started' => '08:00',
-            'time_ended' => '16:00', // 8h — meets required_hours
+            // 8h — meets required_hours
+            'activities' => [
+                ['activity' => 'Morning block.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ['activity' => 'Afternoon block.', 'time_started' => '13:00', 'time_ended' => '17:00'],
+            ],
         ]);
 
         (new CompletedHoursRecalculator())->recalculate($student->fresh());
@@ -259,12 +266,98 @@ class DarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->post(route('student.dar.store'), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Blocked by completion.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Blocked by completion.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                ],
             ])
             ->assertSessionHasErrors('report_date');
 
         $this->assertDatabaseCount('daily_accomplishment_reports', 1);
+    }
+
+    public function test_dar_rejects_a_21st_activity_but_accepts_20(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.dar');
+
+        $entries = [];
+        for ($i = 1; $i <= 21; $i++) {
+            // Every entry is individually valid — only the 20-item cap
+            // may fail, isolating exactly the rule under test.
+            $entries[] = ['activity' => "Task {$i}.", 'time_started' => '08:00', 'time_ended' => '08:30'];
+        }
+
+        // 21 entries: rejected, keyed on `activities` itself (the max
+        // failure is on the array, not on any activities.{i}.* field).
+        $this->actingAs($student->user)
+            ->post(route('student.dar.store'), [
+                'report_date' => now()->toDateString(),
+                'activities' => $entries,
+            ])
+            ->assertSessionHasErrors('activities');
+
+        $this->assertDatabaseCount('daily_accomplishment_reports', 0);
+
+        // Boundary: exactly 20 entries passes.
+        array_pop($entries);
+
+        $this->actingAs($student->user)
+            ->post(route('student.dar.store'), [
+                'report_date' => now()->toDateString(),
+                'activities' => $entries,
+            ])
+            ->assertRedirect(route('student.dar.index'));
+
+        $this->assertDatabaseCount('daily_accomplishment_reports', 1);
+        $this->assertCount(20, $student->dailyAccomplishmentReports()->first()->activities);
+    }
+
+    public function test_create_and_edit_forms_render_with_activity_rows(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.dar');
+
+        // Blank form offers the repeatable row group.
+        $this->actingAs($student->user)
+            ->get(route('student.dar.create'))
+            ->assertOk()
+            ->assertSee('Add another activity', false);
+
+        // Edit form prefills the saved entries for revision.
+        $dar = $this->makeDar($student, [
+            'activities' => [
+                ['activity' => 'Prefilled first task.', 'time_started' => '08:00', 'time_ended' => '10:00'],
+                ['activity' => 'Prefilled second task.', 'time_started' => '10:00', 'time_ended' => '12:00'],
+            ],
+        ]);
+
+        $this->actingAs($student->user)
+            ->get(route('student.dar.edit', $dar))
+            ->assertOk()
+            ->assertSee('Prefilled first task.', false)
+            ->assertSee('Prefilled second task.', false);
+    }
+
+    public function test_multi_entry_date_sums_hours_across_entries(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.dar');
+
+        // Lester's real 6/1/26 (lester-reference-examples/): 3h + 1.5h +
+        // 3h + 1.5h = 9h, exercising the mutator sum across 3+ entries
+        // including half-hour fractions.
+        $this->actingAs($student->user)
+            ->post(route('student.dar.store'), [
+                'report_date' => now()->toDateString(),
+                'activities' => $this->lesterDayActivities(),
+            ])
+            ->assertRedirect(route('student.dar.index'));
+
+        $dar = $student->dailyAccomplishmentReports()->first();
+
+        $this->assertNotNull($dar);
+        $this->assertCount(4, $dar->activities);
+        $this->assertEquals(9.0, (float) $dar->hours_rendered);
+        $this->assertEquals([3.0, 1.5, 3.0, 1.5], $dar->activityEntryHours());
     }
 }

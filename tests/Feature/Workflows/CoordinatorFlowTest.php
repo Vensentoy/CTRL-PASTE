@@ -116,8 +116,10 @@ class CoordinatorFlowTest extends WorkflowTestCase
 
         $dar = $this->makeDar($student, [
             'report_date' => now()->toDateString(),
-            'time_started' => '08:00',
-            'time_ended' => '12:00', // 4h
+            // 4h
+            'activities' => [
+                ['activity' => 'Review queue work.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+            ],
         ]);
         $this->actingAs($student->user)->post(route('student.dar.submit'), [
             'cycle_id' => $cycle->id,
@@ -188,9 +190,10 @@ class CoordinatorFlowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->put(route('student.dar.update', $dar), [
                 'report_date' => now()->toDateString(),
-                'activities_text' => 'Revised with remarks.',
-                'time_started' => '08:00',
-                'time_ended' => '12:00',
+                'activities' => [
+                    ['activity' => 'Revised with remarks.', 'time_started' => '08:00', 'time_ended' => '12:00'],
+                    ['activity' => 'Added supervisor sign-off note.', 'time_started' => '13:00', 'time_ended' => '14:00'],
+                ],
             ])
             ->assertRedirect(route('student.dar.index'));
 

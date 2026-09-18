@@ -34,9 +34,12 @@ class UpdateDarRequest extends FormRequest
     {
         return [
             'report_date' => ['required', 'date'],
-            'activities_text' => ['required', 'string', 'max:5000'],
-            'time_started' => ['required', 'date_format:H:i'],
-            'time_ended' => ['required', 'date_format:H:i', 'after:time_started'],
+            // Same multi-activity shape as StoreDarRequest (1–20 entries;
+            // per-item failures key as activities.{i}.{field}).
+            'activities' => ['required', 'array', 'min:1', 'max:20'],
+            'activities.*.activity' => ['required', 'string', 'max:1000'],
+            'activities.*.time_started' => ['required', 'date_format:H:i'],
+            'activities.*.time_ended' => ['required', 'date_format:H:i', 'after:activities.*.time_started'],
             'remarks_student' => ['nullable', 'string', 'max:2000'],
         ];
     }

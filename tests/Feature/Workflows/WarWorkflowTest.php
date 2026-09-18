@@ -39,12 +39,12 @@ class WarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->patch(route('student.war.week.update', $war), [
                 'week' => 1,
-                'activities' => 'Week one activities.',
+                'activities' => ['Week one activities.'],
                 'hours' => 8,
             ])
             ->assertRedirect(route('student.war.show'));
 
-        $this->assertSame('Week one activities.', $war->fresh()->week1_activities);
+        $this->assertSame(['Week one activities.'], $war->fresh()->week1_activities);
         $this->assertEquals(8, (float) $war->fresh()->week1_hours);
         $this->assertSame('Draft', $war->fresh()->week1_status);
     }
@@ -120,7 +120,7 @@ class WarWorkflowTest extends WorkflowTestCase
         $war = WeeklyAccomplishmentReport::where('student_id', $student->id)->first();
         $this->actingAs($student->user)->patch(route('student.war.week.update', $war), [
             'week' => 1,
-            'activities' => 'Reviewed week.',
+            'activities' => ['Reviewed week.'],
             'hours' => 8,
         ]);
         $this->actingAs($student->user)->post(route('student.war.submit', $war), ['cycle_id' => $cycle->id]);
@@ -181,7 +181,7 @@ class WarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->patch(route('student.war.week.update', $war), [
                 'week' => 1,
-                'activities' => 'Too late to edit.',
+                'activities' => ['Too late to edit.'],
                 'hours' => 10,
             ])
             ->assertForbidden();
@@ -198,9 +198,67 @@ class WarWorkflowTest extends WorkflowTestCase
         $this->actingAs($student->user)
             ->patch(route('student.war.week.update', $war), [
                 'week' => 1,
-                'activities' => 'Blocked edit.',
+                'activities' => ['Blocked edit.'],
                 'hours' => 8,
             ])
             ->assertSessionHasErrors('activities');
+    }
+
+    public function test_week_with_multiple_activity_lines_saves_and_renders(): void
+    {
+        $coordinator = $this->makeCoordinator();
+        $student = $this->makeStudent($coordinator, 'student.war');
+        $cycle = $this->makeCycle($coordinator);
+
+        $this->actingAs($student->user)->get(route('student.war.show'));
+        $war = WeeklyAccomplishmentReport::where('student_id', $student->id)->first();
+
+        $lines = [
+            'Disassembled and cleaned computers.',
+            'Reformatted practice machines.',
+            'Ran LAN cables to the stockroom.',
+            'Installed drivers for the costing department.',
+        ];
+
+        $this->actingAs($student->user)
+            ->patch(route('student.war.week.update', $war), [
+                'week' => 1,
+                'activities' => $lines,
+                'hours' => 45,
+            ])
+            ->assertRedirect(route('student.war.show'));
+
+        $fresh = $war->fresh();
+        $this->assertSame($lines, $fresh->week1_activities);
+        $this->assertSame('Draft', $fresh->week1_status);
+
+        // The week form re-renders every saved line for further editing.
+        $this->actingAs($student->user)
+            ->get(route('student.war.show'))
+            ->assertOk()
+            ->assertSee('Disassembled and cleaned computers.')
+            ->assertSee('Reformatted practice machines.')
+            ->assertSee('Ran LAN cables to the stockroom.')
+            ->assertSee('Installed drivers for the costing department.');
+
+        // PDF structure: all lines present, merged cells span them once
+        // (rowspan=count), the merged hours cell appears exactly once
+        // (the per-week subtotal and grand-total rows repeat the same
+        // number by design, so the assertion targets the merged cell).
+        $this->actingAs($student->user)->post(route('student.war.submit', $war), ['cycle_id' => $cycle->id]);
+        $fresh = $war->fresh();
+
+        $html = view('pdf.war', [
+            'student' => $student,
+            'company' => null,
+            'war' => $fresh,
+            'totalHours' => 45.0,
+        ])->render();
+
+        foreach ($lines as $line) {
+            $this->assertStringContainsString($line, $html);
+        }
+        $this->assertStringContainsString('rowspan="4"', $html);
+        $this->assertSame(1, substr_count($html, '<td rowspan="4">45.00</td>'));
     }
 }

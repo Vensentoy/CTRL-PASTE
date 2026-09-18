@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-lg mx-auto sm:px-6 lg:px-8">
+    <div class="py-8 max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
         <form method="POST" action="{{ route('coordinator.cycles.store') }}" class="space-y-4">
             @csrf
 
@@ -16,7 +16,7 @@
                 <x-input-error :messages="$errors->get('cycle_name')" class="mt-2" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <x-input-label for="coverage_start_date" value="Coverage Start" />
                     <x-text-input id="coverage_start_date" name="coverage_start_date" type="date"

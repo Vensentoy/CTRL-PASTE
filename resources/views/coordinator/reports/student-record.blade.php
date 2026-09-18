@@ -11,7 +11,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         <div class="flex justify-between items-center">
             <a href="{{ route('coordinator.students.show', $student) }}" class="text-sm text-blue-600 hover:underline">
@@ -26,7 +26,7 @@
         {{-- Profile summary --}}
         <div class="border rounded-md p-4">
             <p class="text-xs text-gray-500 uppercase tracking-wide mb-3">Profile</p>
-            <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="text-xs text-gray-500 uppercase tracking-wide">Student ID</p>
                     <p>{{ $student->student_id_number }}</p>
@@ -61,6 +61,7 @@
             <div class="bg-gray-50 px-4 py-2">
                 <span class="font-medium text-sm">Company Assignment History</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
@@ -83,6 +84,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         {{-- Report history: DAR/WAR/MAR submission records --}}
@@ -90,6 +92,7 @@
             <div class="bg-gray-50 px-4 py-2">
                 <span class="font-medium text-sm">Daily Accomplishment Reports</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
@@ -110,12 +113,14 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="border rounded-md">
             <div class="bg-gray-50 px-4 py-2">
                 <span class="font-medium text-sm">Weekly Accomplishment Reports</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
@@ -140,12 +145,14 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="border rounded-md">
             <div class="bg-gray-50 px-4 py-2">
                 <span class="font-medium text-sm">Monthly Accomplishment Reports</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
@@ -166,6 +173,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         {{-- Approval history — pulled from AuditLog, see
@@ -177,6 +185,7 @@
             <div class="bg-gray-50 px-4 py-2">
                 <span class="font-medium text-sm">Approval History</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
@@ -207,6 +216,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
     </div>

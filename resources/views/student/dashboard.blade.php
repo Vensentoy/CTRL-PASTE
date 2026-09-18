@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 text-green-800 rounded-md p-3 text-sm">
@@ -73,9 +73,9 @@
         </div>
 
         @if (! $student->informationSheet)
-            <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 text-sm flex justify-between items-center">
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 text-sm flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
                 <span>You haven't completed your OJT Information Sheet yet — this is a one-time onboarding step.</span>
-                <a href="{{ route('student.information-sheet.create') }}" class="font-medium underline whitespace-nowrap ml-4">Fill it out</a>
+                <a href="{{ route('student.information-sheet.create') }}" class="font-medium underline shrink-0">Fill it out</a>
             </div>
         @endif
 
@@ -129,7 +129,7 @@
                 <span class="font-medium text-sm">Daily Accomplishment Reports</span>
                 <a href="{{ route('student.dar.index') }}" class="text-xs text-blue-600 hover:underline">View all</a>
             </div>
-            <div class="p-4 flex gap-6 text-sm">
+            <div class="p-4 grid grid-cols-3 sm:grid-cols-5 gap-4 text-sm">
                 @foreach (['Draft', 'Pending', 'Late', 'Returned', 'Approved'] as $status)
                     <div>
                         <p class="text-xs text-gray-500">{{ $status }}</p>
@@ -149,17 +149,17 @@
             @endif
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
             <a href="{{ route('student.dar.create') }}"
-               class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md">Log a new DAR</a>
+               class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md text-center">Log a new DAR</a>
             <a href="{{ route('student.war.show') }}"
-               class="px-4 py-2 border text-sm font-medium rounded-md">This month's WAR</a>
+               class="px-4 py-2 border text-sm font-medium rounded-md text-center">This month's WAR</a>
             <a href="{{ route('student.mar.show') }}"
-               class="px-4 py-2 border text-sm font-medium rounded-md">This month's MAR</a>
+               class="px-4 py-2 border text-sm font-medium rounded-md text-center">This month's MAR</a>
             <a href="{{ route('student.information-sheet.show') }}"
-               class="px-4 py-2 border text-sm font-medium rounded-md">OJT Information Sheet</a>
+               class="px-4 py-2 border text-sm font-medium rounded-md text-center">OJT Information Sheet</a>
             <a href="{{ route('student.company.index') }}"
-               class="px-4 py-2 border text-sm font-medium rounded-md">Company Assignment</a>
+               class="px-4 py-2 border text-sm font-medium rounded-md text-center">Company Assignment</a>
         </div>
     </div>
 </x-app-layout>

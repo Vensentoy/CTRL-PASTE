@@ -66,9 +66,9 @@ class DarController extends Controller
         $dar->student_id = $student->id;
         $dar->status = 'Draft';
         // BR-3: hours_rendered is ALWAYS computed server-side, never
-        // taken from the request — calculate after the raw times are
-        // set, before the first save.
-        $dar->hours_rendered = $dar->calculateHoursRendered();
+        // taken from the request — the model's setActivitiesAttribute()
+        // mutator recomputes it from the `activities` array during the
+        // fill above, so there is nothing to calculate here.
         $dar->save();
 
         return redirect()
@@ -90,10 +90,10 @@ class DarController extends Controller
         $wasReturned = $dar->status === 'Returned';
 
         $dar->fill($request->validated());
-        // BR-3: recompute on every write that touches the time fields —
-        // never trust a client-sent hours_rendered (there isn't one;
-        // it's excluded from $fillable entirely).
-        $dar->hours_rendered = $dar->calculateHoursRendered();
+        // BR-3: filling the validated `activities` array above recomputes
+        // hours_rendered via the model mutator — never trust a
+        // client-sent hours_rendered (there isn't one; it's excluded from
+        // $fillable entirely).
 
         // workflows.md §4.3: resubmitting a Returned document goes
         // straight back to Pending for re-review — this is NOT
